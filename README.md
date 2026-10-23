@@ -4,7 +4,7 @@
 
 ![面板截图](docs/screenshot.png)
 
-**零宿主端代码 · 零第三方依赖 · 不联网 · 不进模型上下文。** 全部可验证，见[权限声明](#权限声明)。
+**零宿主端代码 · 零第三方依赖 · 本地优先 · 出网可声明 · 不进模型上下文。** 全部可验证，见[权限声明](#权限声明)。
 
 ## 安装
 
@@ -61,7 +61,7 @@ dsh 的宿主端插件与主进程同权限（可读凭据、全部会话、任�
 | **零宿主端代码** | `lib/index.js` 只有一个空 `apply() {}` | 全文 15 行，读一遍即可 |
 | **源码即产物** | 源码位于 `src/` 四个模块，`npm run build` 拼装成 `lib/client.js`；产物不压缩、无第三方依赖、无混淆，浏览器执行的就是仓库里可读的代码 | 无 dependencies / devDependencies，`files` 只发产物与运行期数据，`src/` 与 `scripts/` 不进包 |
 | **构建方式** | 零依赖拼装脚本（`scripts/build.mjs`，约 100 行读文件 + 缩进 + 拼接），**不是** bundler | 没有 `esbuild`/`rollup`/`webpack` 之类的痕迹；脚本改动 `git diff` 一眼看得完 |
-| **不联网** | 无 `fetch`/`XMLHttpRequest`；不用第三方 favicon、不探测可用性、不抓标题 | `disclosure.network === []` |
+| **联网策略** | 当前 0 条出网请求。需要联网的能力（榜单在线刷新、详情抓取等）**必须先把域名写进 `disclosure.network` 才能进代码**，CI 会拦下未申报的 `fetch`；不请求第三方 favicon、不探测可用性、不抓标题 | `disclosure.network` 与 CI 的 network 门禁 |
 | **不进模型** | 不注册工具、不拼提示词、不做 AI 分类 | 无 `ctx.tools` 注册 |
 | **数据不出本机** | 收藏与最近打开只写 `localStorage`，键 `redai-nav:store:v1` | 「⋯ → 清空本地数据」可一键清除 |
 
@@ -74,6 +74,8 @@ dsh 的宿主端插件与主进程同权限（可读凭据、全部会话、任�
 - **卸载不清数据**：卸载插件只移除 loader 行，浏览器里的 key 还在；重装后收藏会回来。要彻底清除，先点「清空本地数据」再卸载。
 
 `package.json` 的 `dsh.disclosure` 按社区 DISCLOSURE v0.2 契约声明：`cloud: false`、`network: []`、`offlineMode: true`、`apiKeys: []`、`retention: "none"`、`permissions` 含 `storage:localStorage`、法域 `PIPL`。
+
+这是**当前状态，不是永久承诺**——联网能力是产品的一部分，只是每加一个出网域名，`network` 数组与本文档都要同步更新。门禁只在「代码里出现 `fetch` 而声明为空」时报红，所以漏写会立刻暴露，而不是靠自觉。
 
 ## 兼容性
 
@@ -131,7 +133,7 @@ npm run preview       # 生成 preview/index.html（静态预览，不必重启�
 
 **`新`是自动的**：`addedAt` 在 30 天内就显示，新增站点只要写日期，过期自动消失，不需要维护。
 
-**`热`不是实时统计**，这一点必须说清楚。插件不联网，拿不到"所有用户的点击次数"——这是物理限制，不是偷懒。可选的做法只有这几种：
+**`热`不是实时统计**，这一点必须说清楚。当前版本不采集任何点击行为，拿不到"所有用户的点击次数"——这是隐私选择，不是能力限制。可选的做法有这么几种（后三种都要联网或服务端）：
 
 | 做法 | 数据来源 | 代价 | 是否推荐 |
 |---|---|---|---|
@@ -139,7 +141,7 @@ npm run preview       # 生成 preview/index.html（静态预览，不必重启�
 | 本地点击计数 | 本机 `localStorage` | 只代表"你自己"，不能叫"热门"，应改叫「常用」 | ⭕ 可作为下一步 |
 | 自愿上报 + 仓库汇总 | 用户导出本地统计、手动提交 issue，维护者定期合成 `hot.json` | 样本少、流程重、有滞后 | ⭕ 用户量起来后再说 |
 | 半自动（Agent 生成） | 维护者用 agent 抓公开榜单/搜索结果写回文件 | 抓取在维护者侧，插件仍不联网 | ⭕ 适合定期跑 |
-| Opt-in 联网上报 | 自建服务 + 匿名计数 | 要服务端、要隐私政策、破坏「零联网」承诺 | ❌ 现阶段不值 |
+| Opt-in 联网上报 | 自建服务 + 匿名计数 | 要服务端、要隐私政策、要在 `disclosure.network` 里公开域名与用途 | ⭕ 服务端就绪后可做 |
 
 真要统计全量点击，还有一个技术细节值得先想清楚：**不采集 URL 就无法知道"哪个站热门"**。所以匿名方案至少要上报 URL 的哈希 + 计数，并做 k-匿名（样本太小的条目不发布），否则去匿名化很容易。这是自建服务前必须设计的部分。
 
@@ -170,7 +172,7 @@ npm run preview       # 生成 preview/index.html（静态预览，不必重启�
 | `release` | `{ tag, at }`，来自 `GET /releases/latest`，没有 release 则 `null` |
 | `maintained` | 派生字段：`archived` 仓库 → `archived`；`pushed` 距今 > 180 天 → `stale`；否则 `active` |
 
-抓取字段由 `scripts/fetch-plugins.mjs` 写回（维护者本地手动跑，**插件运行期不联网**）：它只覆盖上面这批抓取/派生字段（含 `stars` / `forks` / `issues` —— 三者同一口径），`id` / `title` / `pkg` / `repo` / `desc` / `why` / `pushed` / `host` / `tags` / `category` / `highlights` / `caveats` 一律保留；单条请求失败时保留旧值并打印警告，不会把字段清空。
+抓取字段由 `scripts/fetch-plugins.mjs` 写回（维护者本地手动跑，**插件运行期当前不出网**）：它只覆盖上面这批抓取/派生字段（含 `stars` / `forks` / `issues` —— 三者同一口径），`id` / `title` / `pkg` / `repo` / `desc` / `why` / `pushed` / `host` / `tags` / `category` / `highlights` / `caveats` 一律保留；单条请求失败时保留旧值并打印警告，不会把字段清空。
 
 ```bash
 node scripts/fetch-plugins.mjs          # 抓取并写回 data/plugins.json

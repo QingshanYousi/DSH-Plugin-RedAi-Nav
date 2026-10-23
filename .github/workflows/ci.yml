@@ -39,13 +39,23 @@ jobs:
           node --check lib/client.js
           npm test
 
-      - name: 产物里不得出现网络调用
+      - name: 出网必须申报（不禁止联网，禁止未申报的联网）
         run: |
           node -e "
+            const pkg = require('./package.json')
+            const declared = (pkg.dsh && pkg.dsh.disclosure && pkg.dsh.disclosure.network) || []
             const source = require('fs').readFileSync('lib/client.js', 'utf8')
             const code = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
             const hit = code.match(/fetch\s*\(|XMLHttpRequest|sendBeacon/)
-            if (hit) { console.error('::error::lib/client.js gained a network call:', hit[0]); process.exit(1) }
+            if (hit && declared.length === 0) {
+              console.error('::error::lib/client.js calls the network (' + hit[0] + ') but dsh.disclosure.network is empty')
+              process.exit(1)
+            }
+            if (!hit && declared.length > 0) {
+              console.error('::error::disclosure.network lists hosts but the bundle never calls them — stale disclosure')
+              process.exit(1)
+            }
+            console.log('network gate ok: code calls=' + (hit ? hit[0] : 'none') + ', declared=' + JSON.stringify(declared))
           "
 
       - name: npm 包不得包含 src/ 与 scripts/

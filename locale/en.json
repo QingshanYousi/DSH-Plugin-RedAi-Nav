@@ -40,7 +40,7 @@
   "action.unstar": "Remove star",
   "banner.kicker": "RedAI plugin",
   "banner.title": "Bookmarks · your developer launchpad",
-  "banner.desc": "{n} hand-picked sites in {g} groups. Star, search, reach them from the keyboard. No network, data stays on your machine.",
+  "banner.desc": "{n} hand-picked sites in {g} groups. Star, search, reach them from the keyboard. Offline by default; anything online has to be declared first.",
   "banner.cta": "Add my first site",
   "banner.off": "Dismiss",
   "detail.back": "Back to list",
