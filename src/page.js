@@ -75,7 +75,7 @@ function Toast({ notice, t, onUndo, onClose }) {
         title: t('notice.close'),
         'aria-label': t('notice.close'),
         onClick: onClose,
-        children: '×',
+        children: jsx('span', { 'aria-hidden': 'true', children: '×' }),
       }),
     ],
   })
@@ -90,7 +90,7 @@ function iconButton(key, glyph, label, onClick) {
     title: label,
     'aria-label': label,
     onClick,
-    children: glyph,
+    children: jsx('span', { 'aria-hidden': 'true', children: glyph }),
   })
 }
 
@@ -512,7 +512,7 @@ function NavPage(props) {
               title: t('search.clear'),
               'aria-label': t('search.clear'),
               onClick: clearQuery,
-              children: '×',
+              children: jsx('span', { 'aria-hidden': 'true', children: '×' }),
             })
             : null,
         ],
@@ -582,6 +582,10 @@ function NavPage(props) {
           className: 'redaiNavInput name',
           placeholder: t('form.title'),
           'aria-label': t('form.title'),
+          type: 'text',
+          name: 'site-title',
+          autoComplete: 'off',
+          spellCheck: false,
           value: draft.title,
           onChange: (event) => setDraft({ ...draft, title: event.target.value }),
         }),
@@ -590,6 +594,11 @@ function NavPage(props) {
           className: 'redaiNavInput url',
           placeholder: t('form.url'),
           'aria-label': t('form.url'),
+          type: 'url',
+          name: 'site-url',
+          inputMode: 'url',
+          autoComplete: 'off',
+          spellCheck: false,
           value: draft.url,
           onChange: (event) => setDraft({ ...draft, url: event.target.value }),
           onKeyDown: (event) => { if (event.key === 'Enter') submitAdd() },

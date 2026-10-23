@@ -98,6 +98,20 @@ dsh 的宿主端插件与主进程同权限（可读凭据、全部会话、任�
 
 判断标准只有一条：**规范解决的是"一致性"，不是"数值本身"**。同一个语义用同一套值（节标题一律 13/20/600、页边距一律 24、卡片圆角一律 10），比抄某个具体数字更重要。
 
+### 对照 Vercel Web Interface Guidelines 的复查
+
+用 `web-design-guidelines` 技能（每次审查现取最新规则）过了一遍，修掉 6 项、确认 4 项本来合规：
+
+| 项 | 处理 |
+|---|---|
+| 图标按钮的字形会被读出来 | 字形包进 `aria-hidden` 的 span，只剩 `aria-label` |
+| 表单缺 `type` / `name` | 网址框 `type="url"` + `inputMode="url"`，两框都加 `name`、`autoComplete="off"`、`spellCheck={false}` |
+| 标题可能留孤字 | `text-wrap: balance` |
+| 触控有 300ms 双击缩放延迟 | `touch-action: manipulation` |
+| 88 张卡片一次性布局 | 分组加 `content-visibility: auto` + `contain-intrinsic-size` |
+| 占位符没给示例 | 改成 `名称，如 Kimi…` |
+| 已有：`prefers-reduced-motion`、`transition: all`、toast 的 `aria-live`、`tabular-nums` | 确认合规，未改动 |
+
 ## 兼容性
 
 | 项 | 值 |

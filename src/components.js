@@ -52,7 +52,7 @@ const cssSites = [
   // border shrinks unpredictably — `height` cannot drift.
   '.redaiNavChip::after{content:"";position:absolute;left:0;right:0;top:50%;height:28px;transform:translateY(-50%);border-radius:999px}',
   '.redaiNavChip:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}.redaiNavBody{padding:4px 24px 40px}',
-  '.redaiNavGroup{padding-top:18px}.redaiNavGroupTitle{display:flex;align-items:baseline;gap:8px;margin:0 0 10px;font-size:13px;line-height:20px;font-weight:600}',
+  '.redaiNavGroup{padding-top:18px;content-visibility:auto;contain-intrinsic-size:auto 260px}.redaiNavGroupTitle{display:flex;align-items:baseline;gap:8px;margin:0 0 10px;font-size:13px;line-height:20px;font-weight:600}',
   '.redaiNavGroupCount{font-size:11px;line-height:16px;font-weight:400;color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}.redaiNavGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}',
   '.redaiNavCard{position:relative;display:flex;align-items:center;gap:10px;min-width:0;padding:9px 9px 9px 11px;border-radius:var(--dsw-radius-md,10px);color:inherit;text-decoration:none;transition:background var(--redai-fast) ease}.redaiNavCard:hover{background:var(--dsw-alias-interactive-bg-hover)}',
     // Hover is a quiet tint; keyboard selection adds a brand tint so both states can coexist.
@@ -143,6 +143,7 @@ const cssSites = [
   // One place for the AA-safe secondary grey. light-dark pairs a literal with the
   // host token, so light mode clears 4.5:1 while dark mode keeps the host colour.
   '.redaiNavPage{--redai-meta:light-dark(#61666b,var(--dsw-alias-label-tertiary))}',
+  '.redaiNavPage button,.redaiNavPage a,[role="button"]{touch-action:manipulation}',
   '.redaiBannerClose:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}.redaiDetailShell{padding:0 24px 40px;max-width:760px}',
   // Site details carry a sticky rail (contents + the rest of the group), so they
   // get a wider shell and become a query container. Keyed off the rail itself
@@ -157,7 +158,7 @@ const cssSites = [
   // the star lands at x≈744, next to the content it acts on. The narrow
   // container drops the cap entirely rather than clipping it.
   '.redaiDetailTop{display:flex;align-items:flex-start;gap:14px;max-width:520px}.redaiDetailIcon{flex:none;display:grid;place-items:center;width:46px;height:46px;border-radius:12px;font-size:20px;font-weight:600;color:#fff}',
-  '.redaiDetailHead{flex:1;min-width:0}.redaiDetailTitle{margin:0;font-size:18px;line-height:27px;font-weight:600}',
+  '.redaiDetailHead{flex:1;min-width:0}.redaiDetailTitle{margin:0;font-size:18px;line-height:27px;font-weight:600;text-wrap:balance}',
   '.redaiDetailTagline{margin-top:4px;font-size:13px;line-height:20px;color:var(--dsw-alias-label-secondary)}.redaiDetailTags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}',
   '.redaiTag{padding:3px 8px;font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-layer-1);border:.5px solid var(--dsw-alias-border-l1);border-radius:999px}.redaiDetailBar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:18px}',
   '.redaiPrimary{height:30px;padding:0 14px;font:inherit;font-size:13px;line-height:28px;color:var(--dsw-alias-label-primary-inverted,#fff);background:var(--dsw-alias-button-primary-fill,#4d6bfe);border:0;border-radius:7px;cursor:pointer}.redaiPrimary:hover{background:var(--dsw-alias-button-primary-hover,#3f5bea)}',
@@ -218,7 +219,7 @@ const cssSites = [
   '.redaiDocBody{min-width:0}',
   '.redaiDocSection{padding-top:18px;scroll-margin-top:44px}',
   '.redaiDocSection+.redaiDocSection{margin-top:2px;border-top:.5px solid var(--dsw-alias-border-l1)}',
-  '.redaiDocH2{margin:0 0 10px;font-size:13px;line-height:20px;font-weight:600;color:var(--dsw-alias-label-primary)}',
+  '.redaiDocH2{margin:0 0 10px;font-size:13px;line-height:20px;font-weight:600;text-wrap:balance;color:var(--dsw-alias-label-primary)}',
   '.redaiDocP{margin:0 0 10px;font-size:13px;line-height:23px;color:var(--dsw-alias-label-secondary)}',
   '.redaiDocP.lead{font-size:14px;line-height:24px;color:var(--dsw-alias-label-primary)}',
   '.redaiFactGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;margin:0;background:var(--dsw-alias-border-l1);border:.5px solid var(--dsw-alias-border-l1);border-radius:8px;overflow:hidden}',
@@ -309,7 +310,7 @@ function StarButton({ t, starred, onClick, dust }) {
     'aria-label': starred ? t('action.unstar') : t('action.star'),
     onClick,
     children: [
-      jsx('span', { key: 'glyph', className: 'redaiNavGlyph', children: starred ? '★' : '☆' }),
+      jsx('span', { key: 'glyph', className: 'redaiNavGlyph', 'aria-hidden': 'true', children: starred ? '★' : '☆' }),
       dust || null,
     ],
   })
@@ -392,7 +393,7 @@ function SiteCard({ link, onActivate, onDetail, onStar, onRemove, starred, activ
             event.stopPropagation()
             onDetail(link)
           },
-          children: 'ⓘ',
+          children: jsx('span', { 'aria-hidden': 'true', children: 'ⓘ' }),
         })
         : null,
       jsx(StarButton, {
@@ -425,7 +426,7 @@ function SiteCard({ link, onActivate, onDetail, onStar, onRemove, starred, activ
             event.stopPropagation()
             onRemove(link)
           },
-          children: '×',
+          children: jsx('span', { 'aria-hidden': 'true', children: '×' }),
         })
         : null,
     ],
@@ -483,7 +484,7 @@ function Banner({ t, onCta, onClose, sites, groups }) {
         title: t('banner.off'),
         'aria-label': t('banner.off'),
         onClick: onClose,
-        children: '×',
+        children: jsx('span', { 'aria-hidden': 'true', children: '×' }),
       }),
     ],
   })

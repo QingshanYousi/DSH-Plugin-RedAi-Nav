@@ -24,7 +24,7 @@
   "action.clearConfirm": "Click again to confirm",
   "action.cancel": "Cancel",
   "action.save": "Save",
-  "form.title": "Name",
+  "form.title": "Name, e.g. Kimi…",
   "form.url": "URL https://…",
   "form.invalid": "URL must start with http:// or https://",
   "notice.saved": "Saved locally",

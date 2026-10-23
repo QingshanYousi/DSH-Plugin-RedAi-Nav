@@ -1865,9 +1865,23 @@ assert.deepEqual(pkg.dsh.disclosure.network, [])
   assert.ok(cardsNow().find((node) => node.props['data-active'] === 'true'),
     'a card is selected behind the add form — otherwise the next assertions could not fail')
 
-  byClassName('redaiNavBtn').find((node) => node.props.children === '+').props.onClick()
+  // The button's visible glyph now lives in an aria-hidden span (so screen
+  // readers hear the label, not "ⓘ"), so look it up by its accessible name.
+  const addButton = byClassName('redaiNavBtn').find((node) => node.props['aria-label'] === dict['action.add'])
+  assert.equal(addButton.props.children.props['aria-hidden'], 'true',
+    'the + glyph is decoration; the aria-label is the button name')
+  addButton.props.onClick()
   settle()
   assert.ok(addFormField('name') && addFormField('url'), 'the add form exposes both fields')
+  // Web Interface Guidelines: a URL field declares itself as one, and no field
+  // invites a password manager or a spellchecker onto a URL.
+  const urlField = addFormField('url')
+  assert.equal(urlField.props.type, 'url', 'the URL field declares type=url')
+  assert.equal(urlField.props.name, 'site-url', 'form controls carry a meaningful name')
+  assert.equal(urlField.props.inputMode, 'url', 'touch keyboards get the URL layout')
+  assert.equal(urlField.props.autoComplete, 'off', 'no password-manager popup on a bookmark field')
+  assert.equal(urlField.props.spellCheck, false, 'no red squiggles under a URL')
+  assert.equal(addFormField('name').props.name, 'site-title', 'the name field is named too')
 
   addFormField('name').props.onChange({ target: { value: 'QA 站点' } })
   settle()
