@@ -1,0 +1,55 @@
+# 三道门禁：产物与源码一致、数据与产物一致、离线断言全绿。
+# 这里不装任何依赖——包里本来就没有 dependencies，装了反而说明有人加了东西。
+name: verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20', '22']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: 确认没有第三方依赖
+        run: |
+          node -e "const p=require('./package.json');const d={...p.dependencies,...p.devDependencies};if(Object.keys(d).length){console.error('unexpected dependencies:',d);process.exit(1)}"
+
+      - name: 产物必须与 src/ 同步（改了源码却没 build 会红）
+        run: node scripts/build.mjs --check
+
+      - name: 内联数据必须与 data/*.json 同步（改了数据却没跑 data 会红）
+        run: node scripts/embed-data.mjs --check
+
+      - name: 语法与离线断言
+        run: |
+          node --check lib/client.js
+          npm test
+
+      - name: 产物里不得出现网络调用
+        run: |
+          node -e "
+            const source = require('fs').readFileSync('lib/client.js', 'utf8')
+            const code = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+            const hit = code.match(/fetch\s*\(|XMLHttpRequest|sendBeacon/)
+            if (hit) { console.error('::error::lib/client.js gained a network call:', hit[0]); process.exit(1) }
+          "
+
+      - name: npm 包不得包含 src/ 与 scripts/
+        run: |
+          if npm pack --dry-run 2>&1 | grep -E "^npm notice [0-9.]+[kMG]?B (src|scripts|test)/"; then
+            echo "::error::source directories leaked into the published package"; exit 1
+          fi
