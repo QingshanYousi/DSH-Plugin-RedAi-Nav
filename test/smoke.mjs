@@ -1177,6 +1177,11 @@ assert.equal(byClass(categoryNodes, 'redaiNavCount')[0].props.children,
 const missNodes = renderPluginsWithQuery('zzz-no-such-plugin')
 assert.equal(byClass(missNodes, 'redaiRankSection').length, 0)
 assert.equal(byClass(missNodes, 'redaiNavEmpty').length, 1, 'an empty result keeps the empty-state message')
+// The UI/UE spec asks for a placeholder illustration in empty regions. Ours is
+// inline SVG inheriting currentColor, and decorative: the sentence says it.
+const emptyArt = byClass(missNodes, 'redaiEmptyArt')
+assert.equal(emptyArt.length, 1, 'an empty region carries the placeholder mark')
+assert.equal(emptyArt[0].props['aria-hidden'], 'true', 'the mark is decorative, the sentence carries the meaning')
 assert.equal(byClass(missNodes, 'redaiNavCount')[0].props.children,
   dict['plugin.count'].replace('{n}', 0))
 

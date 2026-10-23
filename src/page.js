@@ -734,7 +734,14 @@ function NavPage(props) {
             listUrl: PLUGINS.source.list,
           })),
         })
-        : jsx('div', { key: 'empty', className: 'redaiNavEmpty', children: pluginEmpty }),
+        : jsxs('div', {
+          key: 'empty',
+          className: 'redaiNavEmpty',
+          children: [
+            jsx(EmptyArt, { key: 'art' }),
+            jsx('div', { key: 't', className: 'redaiNavEmptyTitle', children: pluginEmpty }),
+          ],
+        }),
     ],
   })
 
@@ -751,6 +758,7 @@ function NavPage(props) {
     key: 'empty',
     className: 'redaiNavEmpty',
     children: [
+      jsx(EmptyArt, { key: 'art' }),
       jsx('div', { key: 't', className: 'redaiNavEmptyTitle', children: t('empty') }),
       jsx('div', { key: 'h', className: 'redaiNavEmptyHint', children: fill(t('empty.hint'), { q: trimmed }) }),
       // Without a query there is nothing to act on, so the buttons stay hidden.

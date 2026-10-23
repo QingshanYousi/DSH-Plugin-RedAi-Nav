@@ -104,6 +104,10 @@ const cssSites = [
   '@media (hover:none){.redaiNavCard .redaiNavInfo{opacity:1}}',
   '.redaiNavCard:hover .redaiNavDel,.redaiNavDel:focus-visible{opacity:1}.redaiNavDel:hover{color:var(--dsw-alias-state-warn-label,#d33)}',
   '.redaiNavEmpty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:320px;padding:48px 0;text-align:center}.redaiNavEmptyTitle{font-size:13px;line-height:20px;color:var(--dsw-alias-label-secondary)}',
+  // The UI/UE spec asks for a placeholder illustration when a region is empty,
+  // placed on the golden-ratio line. Drawn with currentColor so it follows the
+  // theme; decorative, so it stays out of the accessibility tree.
+  '.redaiEmptyArt{width:96px;height:72px;margin-bottom:4px;color:var(--dsw-alias-label-tertiary);opacity:.85}',
   '.redaiNavEmptyHint{max-width:420px;font-size:12px;line-height:18px;color:var(--dsw-alias-label-tertiary)}.redaiNavEmptyActions{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}',
     // Toast floats over the list instead of pushing it: sticky bottom, last child.
   '.redaiNavFoot{padding:24px 24px 32px;font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary)}.redaiToast{position:sticky;bottom:16px;z-index:5;display:flex;align-items:center;gap:8px;margin:0 auto 16px;width:max-content;max-width:calc(100% - 48px);padding:6px 8px 6px 12px;font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-layer-1);border:.5px solid var(--dsw-alias-border-l1);border-radius:var(--dsw-radius-md,10px);box-shadow:var(--dsw-elevation-panel,0 8px 24px rgba(0,0,0,.14));animation:redaiToastIn 180ms var(--redai-ease) both}',
@@ -1016,6 +1020,27 @@ function SiteDetail({ link, detail, groupTitle, siblings, neighbours, t, starred
  * and steadier than animating two values against each other. The label stays a
  * plain string so the element still reads as text for tests and screen readers.
  */
+/**
+ * Placeholder for an empty region: three ghost rows and a magnifier, drawn with
+ * `currentColor` so it inherits the theme. Decorative — hidden from AT, the
+ * sentence underneath carries the meaning.
+ */
+function EmptyArt() {
+  return jsxs('svg', {
+    className: 'redaiEmptyArt',
+    viewBox: '0 0 96 72',
+    'aria-hidden': 'true',
+    focusable: 'false',
+    children: [
+      jsx('rect', { key: 'r1', x: 8, y: 12, width: 72, height: 10, rx: 5, fill: 'currentColor', opacity: 0.12 }),
+      jsx('rect', { key: 'r2', x: 8, y: 30, width: 52, height: 10, rx: 5, fill: 'currentColor', opacity: 0.12 }),
+      jsx('rect', { key: 'r3', x: 8, y: 48, width: 62, height: 10, rx: 5, fill: 'currentColor', opacity: 0.12 }),
+      jsx('circle', { key: 'c', cx: 68, cy: 52, r: 12, fill: 'none', stroke: 'currentColor', strokeWidth: 2, opacity: 0.4 }),
+      jsx('path', { key: 'p', d: 'M77 61 L87 69', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', opacity: 0.4 }),
+    ],
+  })
+}
+
 function Count({ n, text }) {
   const label = typeof text === 'string' ? text : String(n === undefined ? '' : n)
   return jsx('span', {
