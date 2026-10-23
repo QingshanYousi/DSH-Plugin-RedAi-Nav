@@ -354,6 +354,10 @@ const navNodes = flatten(SiteDetail({
 }))
 
 assert.equal(byClassIn(navNodes, 'redaiCrumb').length, 1, 'the page says which list it belongs to')
+assert.equal(byClassIn(navNodes, 'redaiDetailTitle')[0].type, 'h1',
+  'the site name is the page heading, so the section h2s sit under it instead of floating')
+assert.equal(byClassIn(navNodes, 'redaiCrumbSep')[0].props['aria-hidden'], 'true',
+  'the breadcrumb slash is decoration, not something a screen reader should read out')
 assert.deepEqual(readText(byClassIn(navNodes, 'redaiCrumb')[0]).filter(Boolean), ['网址导航', '/', 'AI 助手'],
   'the breadcrumb is the root, a separator and the group name')
 
@@ -552,10 +556,13 @@ assert.match(clientSource, /@container \(max-width:520px\)\{[\s\S]*?\.redaiSibli
   'the card grid folds to one column when two would be too narrow')
 assert.match(clientSource, /@container \(max-width:520px\)\{[\s\S]*?\.redaiDetailTop\{max-width:none\}/,
   'the narrow layout releases the header cap instead of clipping the star')
-// Small print (10–11px) must not fall back to the host's light tertiary, which
-// measures 3.71:1 on white. The deepened pair is the same one the board's grey
-// labels use; detail-contrast.mjs re-measures it in a browser, this pins the rule.
-const GREY_PAIR = 'color:light-dark(#61666b,var(--dsw-alias-label-tertiary))'
+// Small print (10–12px) must not fall back to the host's light tertiary, which
+// measures 3.71:1 on white. The deepened value now lives in one custom property
+// so it cannot drift between rules; detail-contrast.mjs re-measures it in a
+// browser, this pins the definition and every consumer of it.
+const GREY_PAIR = 'color:var(--redai-meta)'
+assert.match(clientSource, /--redai-meta:light-dark\(#61666b,var\(--dsw-alias-label-tertiary\)\)/,
+  'the AA-safe grey is defined once, as a light-dark pair')
 const smallPrintRules = ['.redaiInfoLabel', '.redaiSiblingHost', '.redaiRailHere', '.redaiTocTitle', '.redaiSiblingEmpty']
   .map((selector) => {
     const at = clientSource.indexOf(selector + '{')
@@ -564,7 +571,7 @@ const smallPrintRules = ['.redaiInfoLabel', '.redaiSiblingHost', '.redaiRailHere
 assert.deepEqual(
   smallPrintRules.filter((rule) => rule.css.indexOf(GREY_PAIR) < 0).map((rule) => rule.selector),
   [],
-  'every small-print rule keeps the light-mode grey that clears 4.5:1',
+  'every small-print rule reads the shared token instead of a private grey',
 )
 
 // ── a sibling click opens that site's page, editorial record or not ──────────

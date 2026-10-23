@@ -140,6 +140,9 @@ const cssSites = [
   '.redaiBannerClose::after{content:"";position:absolute;top:50%;left:50%;width:28px;height:28px;transform:translate(-50%,-50%);border-radius:8px}',
     // sticky back control lands on the same axis in both views.
     // Detail pages reuse the list's scroll container and padding rhythm, so the
+  // One place for the AA-safe secondary grey. light-dark pairs a literal with the
+  // host token, so light mode clears 4.5:1 while dark mode keeps the host colour.
+  '.redaiNavPage{--redai-meta:light-dark(#61666b,var(--dsw-alias-label-tertiary))}',
   '.redaiBannerClose:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}.redaiDetailShell{padding:0 24px 40px;max-width:760px}',
   // Site details carry a sticky rail (contents + the rest of the group), so they
   // get a wider shell and become a query container. Keyed off the rail itself
@@ -154,9 +157,9 @@ const cssSites = [
   // the star lands at x≈744, next to the content it acts on. The narrow
   // container drops the cap entirely rather than clipping it.
   '.redaiDetailTop{display:flex;align-items:flex-start;gap:14px;max-width:520px}.redaiDetailIcon{flex:none;display:grid;place-items:center;width:46px;height:46px;border-radius:12px;font-size:20px;font-weight:600;color:#fff}',
-  '.redaiDetailHead{flex:1;min-width:0}.redaiDetailTitle{font-size:18px;line-height:26px;font-weight:600}',
+  '.redaiDetailHead{flex:1;min-width:0}.redaiDetailTitle{margin:0;font-size:18px;line-height:27px;font-weight:600}',
   '.redaiDetailTagline{margin-top:4px;font-size:13px;line-height:20px;color:var(--dsw-alias-label-secondary)}.redaiDetailTags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}',
-  '.redaiTag{padding:3px 8px;font-size:11px;line-height:16px;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-layer-1);border:.5px solid var(--dsw-alias-border-l1);border-radius:999px}.redaiDetailBar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:18px}',
+  '.redaiTag{padding:3px 8px;font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-layer-1);border:.5px solid var(--dsw-alias-border-l1);border-radius:999px}.redaiDetailBar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:18px}',
   '.redaiPrimary{height:30px;padding:0 14px;font:inherit;font-size:13px;line-height:28px;color:var(--dsw-alias-label-primary-inverted,#fff);background:var(--dsw-alias-button-primary-fill,#4d6bfe);border:0;border-radius:7px;cursor:pointer}.redaiPrimary:hover{background:var(--dsw-alias-button-primary-hover,#3f5bea)}',
   '.redaiGhost{height:30px;padding:0 11px;font:inherit;font-size:12px;line-height:28px;color:var(--dsw-alias-label-secondary);background:transparent;border:.5px solid var(--dsw-alias-border-l1);border-radius:7px;cursor:pointer}.redaiGhost:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}',
   '.redaiSection{margin-top:18px}.redaiSectionTitle{margin:0 0 8px;font-size:13px;line-height:20px;font-weight:600}',
@@ -187,14 +190,14 @@ const cssSites = [
   // detail-contrast.mjs for these seven selectors.
   // "You are here" in the group. The current site is never one of the links
   // below it, so this line is what carries `aria-current="page"`.
-  '.redaiRailHere{padding:3px 0 3px 9px;font-size:10px;line-height:15px;color:light-dark(#61666b,var(--dsw-alias-label-tertiary));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+  '.redaiRailHere{padding:3px 0 3px 9px;font-size:10px;line-height:15px;color:var(--redai-meta);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
   '.redaiSiblingList{display:flex;flex-direction:column;gap:2px;margin:0;padding:0;list-style:none}',
   // The body copy is the fuller shape: two columns of cards, each carrying the
   // list's own description under the name. Two is the width where a description
   // still reads as a sentence instead of a column of two words.
   '.redaiSiblingGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0;padding:0;list-style:none}',
   '.redaiSiblingGrid .redaiSibling{padding:9px 11px;border:.5px solid var(--dsw-alias-border-l1);border-radius:8px}',
-  '.redaiSiblingDesc{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;margin-top:2px;font-size:11px;line-height:16px;color:var(--dsw-alias-label-secondary);overflow-wrap:anywhere}',
+  '.redaiSiblingDesc{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;margin-top:2px;font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary);overflow-wrap:anywhere}',
   '.redaiSiblingGrid .redaiSiblingName{font-size:13px;line-height:19px;color:var(--dsw-alias-label-primary)}',
   // One row per site in both placements: name over host, both ellipsised, so a
   // long site name can never push the rail or the grid wider than its box.
@@ -203,14 +206,14 @@ const cssSites = [
   '.redaiSibling:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}',
   '.redaiSiblingName{min-width:0;font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
   '.redaiSibling:hover .redaiSiblingName{color:var(--dsw-alias-label-primary)}',
-  '.redaiSiblingHost{min-width:0;font-size:10px;line-height:15px;color:light-dark(#61666b,var(--dsw-alias-label-tertiary));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
-  '.redaiSiblingEmpty{margin:4px 0 0;padding-left:9px;font-size:11px;line-height:16px;color:light-dark(#61666b,var(--dsw-alias-label-tertiary))}',
+  '.redaiSiblingHost{min-width:0;font-size:10px;line-height:15px;color:var(--redai-meta);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+  '.redaiSiblingEmpty{margin:4px 0 0;padding-left:9px;font-size:12px;line-height:18px;color:var(--redai-meta)}',
   // The three fixed facts of a site: same cell rhythm as the editorial fact grid
   // but its own classes, because these are computed, not curated.
   '.redaiInfoGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1px;margin:0;background:var(--dsw-alias-border-l1);border:.5px solid var(--dsw-alias-border-l1);border-radius:8px;overflow:hidden}',
   '.redaiInfoCell{min-width:0;margin:0;padding:9px 12px;background:var(--dsw-alias-bg-base)}',
-  '.redaiInfoLabel{margin:0;font-size:10px;line-height:15px;letter-spacing:.05em;color:light-dark(#61666b,var(--dsw-alias-label-tertiary))}',
-  '.redaiInfoValue{margin:2px 0 0;font-size:13px;line-height:19px;color:var(--dsw-alias-label-primary);overflow-wrap:anywhere}',
+  '.redaiInfoLabel{margin:0;font-size:10px;line-height:15px;letter-spacing:.05em;color:var(--redai-meta)}',
+  '.redaiInfoValue{margin:2px 0 0;font-size:13px;line-height:20px;color:var(--dsw-alias-label-primary);overflow-wrap:anywhere}',
   '.redaiInfoTags{display:flex;flex-wrap:wrap;align-items:center;gap:4px;min-height:19px}',
   '.redaiDocBody{min-width:0}',
   '.redaiDocSection{padding-top:18px;scroll-margin-top:44px}',
@@ -221,7 +224,7 @@ const cssSites = [
   '.redaiFactGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;margin:0;background:var(--dsw-alias-border-l1);border:.5px solid var(--dsw-alias-border-l1);border-radius:8px;overflow:hidden}',
   '.redaiFactCell{margin:0;padding:9px 12px;background:var(--dsw-alias-bg-base)}',
   '.redaiFactLabel{margin:0;font-size:10px;line-height:15px;letter-spacing:.05em;color:var(--dsw-alias-label-tertiary)}',
-  '.redaiFactValue{margin:2px 0 0;font-size:13px;line-height:19px;color:var(--dsw-alias-label-primary)}',
+  '.redaiFactValue{margin:2px 0 0;font-size:13px;line-height:20px;color:var(--dsw-alias-label-primary)}',
   '.redaiCapList{display:flex;flex-direction:column;gap:2px}',
   '.redaiCapRow{padding:7px 0}',
   '.redaiCapGroup{font-size:12px;line-height:18px;font-weight:500;color:var(--dsw-alias-label-primary)}',
@@ -243,9 +246,9 @@ const cssSites = [
   '.redaiModelNote{font-size:12px;line-height:19px;color:var(--dsw-alias-label-tertiary)}',
   '.redaiNote{position:relative;margin:0 0 7px;padding-left:22px;font-size:12px;line-height:21px;color:var(--dsw-alias-label-secondary)}',
   '.redaiNoteNum{position:absolute;left:0;top:2px;width:16px;font-size:10px;line-height:16px;text-align:center;color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}',
-  '.redaiDocFoot{margin-top:26px;padding-top:12px;border-top:.5px solid var(--dsw-alias-border-l1);font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary)}',
+  '.redaiDocFoot{margin-top:26px;padding-top:12px;border-top:.5px solid var(--dsw-alias-border-l1);font-size:12px;line-height:18px;color:var(--dsw-alias-label-tertiary)}',
   // Chrome borrowed from the docs quickstart: where you are, and how to keep going.
-  '.redaiCrumb{display:flex;align-items:center;gap:6px;margin:10px 0 0;font-size:11px;line-height:16px;color:var(--dsw-alias-label-secondary)}',
+  '.redaiCrumb{display:flex;align-items:center;gap:6px;margin:10px 0 0;font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary)}',
   '.redaiCrumbSep{color:var(--dsw-alias-label-tertiary)}',
   '.redaiPager{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:26px}',
   '.redaiPagerSlot{display:block}',
@@ -253,14 +256,14 @@ const cssSites = [
   '.redaiPagerBtn:hover{background:var(--dsw-alias-interactive-bg-hover)}',
   '.redaiPagerBtn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}',
   '.redaiPagerBtn.next{text-align:right;align-items:flex-end}',
-  '.redaiPagerLabel{font-size:10px;line-height:15px;color:light-dark(#61666b,var(--dsw-alias-label-tertiary))}',
+  '.redaiPagerLabel{font-size:10px;line-height:15px;color:var(--redai-meta)}',
   '.redaiPagerName{max-width:100%;font-size:12px;line-height:18px;color:var(--dsw-alias-label-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
-  '.redaiContribute{margin-top:14px;font-size:11px;line-height:16px}',
+  '.redaiContribute{margin-top:14px;font-size:12px;line-height:18px}',
   '.redaiFootLink{color:var(--dsw-alias-label-secondary);text-decoration:underline;text-underline-offset:2px}',
   '.redaiFootLink:hover{color:var(--dsw-alias-label-primary)}',
   '.redaiFootLink:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}',
   '@container (max-width:520px){.redaiPager{grid-template-columns:minmax(0,1fr)}}',
-  '.redaiTocTitle{margin-bottom:8px;font-size:10px;line-height:15px;letter-spacing:.06em;color:light-dark(#61666b,var(--dsw-alias-label-tertiary))}',
+  '.redaiTocTitle{margin-bottom:8px;font-size:10px;line-height:15px;letter-spacing:.06em;color:var(--redai-meta)}',
   '.redaiTocLink{display:block;padding:2px 0 2px 9px;font-size:12px;line-height:19px;color:var(--dsw-alias-label-secondary);text-decoration:none;border-left:2px solid transparent}',
   '.redaiTocLink:hover{color:var(--dsw-alias-label-primary);border-left-color:var(--dsw-alias-border-l2,rgba(0,0,0,.2))}',
   '.redaiTocLink:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}',
@@ -883,7 +886,7 @@ function SiteDetail({ link, detail, groupTitle, siblings, neighbours, t, starred
           className: 'redaiCrumb',
           children: [
             jsx('span', { key: 'root', children: t('detail.crumbRoot') }),
-            jsx('span', { key: 'sep', className: 'redaiCrumbSep', children: '/' }),
+            jsx('span', { key: 'sep', className: 'redaiCrumbSep', 'aria-hidden': 'true', children: '/' }),
             jsx('span', { key: 'group', children: groupTitle }),
           ],
         })
@@ -903,7 +906,7 @@ function SiteDetail({ link, detail, groupTitle, siblings, neighbours, t, starred
             key: 'head',
             className: 'redaiDetailHead',
             children: [
-              jsx('div', { key: 't', className: 'redaiDetailTitle', children: link.title }),
+              jsx('h1', { key: 't', className: 'redaiDetailTitle', children: link.title }),
               (tagline)
                 ? jsx('div', { key: 'g', className: 'redaiDetailTagline', children: tagline })
                 : null,
