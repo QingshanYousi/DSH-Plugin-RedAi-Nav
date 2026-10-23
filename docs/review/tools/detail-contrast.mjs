@@ -24,6 +24,13 @@ const LINE = 4.5
 /** Deepened light grey, and the host's dark tertiary the dark half must keep. */
 const LIGHT_OVERRIDE = [0x61, 0x66, 0x6b]
 const DARK_TERTIARY = [0xad, 0xb2, 0xb8]
+// One selector is not part of the light-dark pair: the card description is 11px
+// body copy and reads `--dsw-alias-label-secondary` in both themes on purpose,
+// so its dark half must be the host's secondary, not its tertiary.
+const DARK_SECONDARY = [0xcf, 0xd3, 0xd6]
+const DARK_EXPECT = {
+  '.redaiSiblingDesc': { token: 'secondary', rgb: DARK_SECONDARY },
+}
 
 // One page cannot show all seven: the rail's contents list only exists on a page
 // with editorial content, the card grid only shows when the rail has no contents
@@ -167,16 +174,17 @@ for (const r of rows) {
   console.log(`| ${r.page} | ${r.sel} | ${r.state} | ${hex(fg)} | ${hex(r.bg)} | ${hex(r.glyph)} | ${value.toFixed(2)} | ${r.fontSize} | ${r.state === 'light' ? (ok ? 'PASS' : '**FAIL**') : '–'} |`)
 }
 
-console.log('\n### 暗色是否仍是宿主的 tertiary（不许自造颜色）')
+console.log('\n### 暗色是否仍是宿主变量（不许自造颜色）')
 let darkOk = true
 for (const r of rows) {
   if (r.missing || r.state !== 'dark') continue
   const fg = parseColor(r.color)
-  const isTertiary = near(fg, DARK_TERTIARY)
-  if (!isTertiary) darkOk = false
-  console.log(`  ${r.sel.padEnd(38)} 暗=${hex(fg)} ${isTertiary ? '原 tertiary' : '**不是 tertiary**'} · 比例=${ratio(fg, r.bg).toFixed(2)}`)
+  const expect = DARK_EXPECT[r.sel] || { token: 'tertiary', rgb: DARK_TERTIARY }
+  const isExpected = near(fg, expect.rgb)
+  if (!isExpected) darkOk = false
+  console.log(`  ${r.sel.padEnd(38)} 暗=${hex(fg)} ${isExpected ? '原 ' + expect.token : '**不是 ' + expect.token + '**'} · 比例=${ratio(fg, r.bg).toFixed(2)}`)
 }
 
-console.log(`\n判定：亮色低于 ${LINE}:1 的 ${fails} 个 · 暗色仍为原 tertiary ${darkOk ? '是' : '**否**'}`)
+console.log(`\n判定：亮色低于 ${LINE}:1 的 ${fails} 个 · 暗色仍为宿主原变量 ${darkOk ? '是' : '**否**'}`)
 if (fails > 0 || !darkOk) process.exitCode = 1
 stopBrowser()
