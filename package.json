@@ -1,0 +1,97 @@
+{
+  "name": "dsh-plugin-redai-nav",
+  "version": "0.7.1",
+  "description": "RedAI · 网址导航 — a bookmarks panel for DeepSeek Harness: a sidebar entry and a searchable site directory, installed and removed as an ordinary bundle plugin.",
+  "type": "module",
+  "license": "MIT",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./locale/*.json": "./locale/*.json",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "data",
+    "locale",
+    "docs/screenshot.png",
+    "docs/detail.png",
+    "docs/plugins.png",
+    "docs/plugin-detail.png",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "dsh",
+    "redai",
+    "bookmarks",
+    "navigation",
+    "start-page"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/QingshanYousi/dsh-plugin-redai-nav.git"
+  },
+  "homepage": "https://github.com/QingshanYousi/dsh-plugin-redai-nav#readme",
+  "bugs": {
+    "url": "https://github.com/QingshanYousi/dsh-plugin-redai-nav/issues"
+  },
+  "engines": {
+    "dsh": ">=0.2.1-rc.2 <0.3.0"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "data": "node scripts/embed-data.mjs && node scripts/build.mjs",
+    "data:check": "node scripts/embed-data.mjs --check && node scripts/build.mjs --check",
+    "preview": "node scripts/preview.mjs",
+    "test": "node test/smoke.mjs",
+    "prepublishOnly": "npm run data:check && npm test"
+  },
+  "peerDependencies": {
+    "react": ">=18.2.0 <20"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "dsh": {
+    "plugin": true,
+    "kind": "client",
+    "manifestVersion": 1,
+    "bundle": {
+      "patch": [
+        "./cordis.patch.yml"
+      ]
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-sidebar",
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-locale"
+      ]
+    },
+    "disclosure": {
+      "cloud": false,
+      "network": [],
+      "offlineMode": true,
+      "apiKeys": [],
+      "permissions": [
+        "network:none",
+        "filesystem:none",
+        "env:none",
+        "renderer-only",
+        "storage:localStorage"
+      ],
+      "jurisdiction": [
+        "PIPL"
+      ],
+      "retention": "none"
+    }
+  }
+}

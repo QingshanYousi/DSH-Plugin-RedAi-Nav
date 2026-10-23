@@ -1,0 +1,548 @@
+{
+  "version": 1,
+  "sources": [
+    {
+      "id": "webstack",
+      "name": "WebStackPage",
+      "url": "https://github.com/WebStackPage/WebStackPage.github.io",
+      "license": "MIT"
+    }
+  ],
+  "groups": [
+    {
+      "id": "ai-chat",
+      "title": "AI 助手",
+      "titleEn": "AI Assistants",
+      "links": [
+        {
+          "title": "DeepSeek",
+          "url": "https://chat.deepseek.com/",
+          "desc": "官方对话，代码与推理",
+          "addedAt": "2026-09-01",
+          "hot": true
+        },
+        {
+          "title": "Kimi",
+          "url": "https://www.kimi.com/",
+          "desc": "月之暗面，长文档阅读"
+        },
+        {
+          "title": "豆包",
+          "url": "https://www.doubao.com/chat/",
+          "desc": "字节跳动，多模态对话"
+        },
+        {
+          "title": "通义千问",
+          "url": "https://www.qianwen.com/",
+          "desc": "阿里，办公与文档"
+        },
+        {
+          "title": "智谱清言",
+          "url": "https://chatglm.cn/",
+          "desc": "GLM 系列模型对话",
+          "addedAt": "2026-06-15"
+        },
+        {
+          "title": "ChatGPT",
+          "url": "https://chatgpt.com/",
+          "desc": "OpenAI 官方对话"
+        },
+        {
+          "title": "Claude",
+          "url": "https://claude.ai/",
+          "desc": "Anthropic 官方对话",
+          "addedAt": "2026-05-15"
+        },
+        {
+          "title": "Gemini",
+          "url": "https://gemini.google.com/",
+          "desc": "Google 多模态助手",
+          "addedAt": "2026-07-25"
+        },
+        {
+          "title": "Grok",
+          "url": "https://grok.com/",
+          "desc": "xAI 对话助手"
+        },
+        {
+          "title": "Mistral Le Chat",
+          "url": "https://chat.mistral.ai/",
+          "desc": "Mistral 官方对话"
+        },
+        {
+          "title": "腾讯元宝",
+          "url": "https://yuanbao.tencent.com/",
+          "desc": "腾讯出品，微信生态内可用"
+        },
+        {
+          "title": "文心一言",
+          "url": "https://wenxin.baidu.com/",
+          "desc": "百度，中文知识问答"
+        }
+      ]
+    },
+    {
+      "id": "ai-platform",
+      "title": "模型与平台",
+      "titleEn": "Models & Platforms",
+      "links": [
+        {
+          "title": "硅基流动",
+          "url": "https://www.siliconflow.cn/",
+          "desc": "国产多模型 API 聚合",
+          "addedAt": "2026-05-06"
+        },
+        {
+          "title": "魔搭 ModelScope",
+          "url": "https://modelscope.cn/",
+          "desc": "阿里开源模型社区"
+        },
+        {
+          "title": "DeepSeek 开放平台",
+          "url": "https://platform.deepseek.com/",
+          "desc": "API Key 与用量"
+        },
+        {
+          "title": "阿里云百炼",
+          "url": "https://bailian.console.aliyun.com/",
+          "desc": "通义系列 API 与智能体",
+          "hot": true
+        },
+        {
+          "title": "Hugging Face",
+          "url": "https://huggingface.co/",
+          "desc": "模型、数据集与论文",
+          "hot": true
+        },
+        {
+          "title": "OpenRouter",
+          "url": "https://openrouter.ai/",
+          "desc": "一个 Key 调多家模型"
+        },
+        {
+          "title": "Replicate",
+          "url": "https://replicate.com/",
+          "desc": "按次计费的模型托管"
+        },
+        {
+          "title": "Ollama",
+          "url": "https://ollama.com/",
+          "desc": "本地跑开源模型",
+          "addedAt": "2026-04-26"
+        },
+        {
+          "title": "OpenAI Platform",
+          "url": "https://platform.openai.com/",
+          "desc": "API Key 与定价"
+        },
+        {
+          "title": "Claude 开发者平台",
+          "url": "https://platform.claude.com/",
+          "desc": "API 控制台与文档",
+          "addedAt": "2026-04-05"
+        },
+        {
+          "title": "Groq Console",
+          "url": "https://console.groq.com/",
+          "desc": "低延迟推理服务"
+        },
+        {
+          "title": "Google AI Studio",
+          "url": "https://aistudio.google.com/",
+          "desc": "Gemini API 调试"
+        }
+      ]
+    },
+    {
+      "id": "mcp",
+      "title": "MCP 与插件",
+      "titleEn": "MCP & Plugins",
+      "links": [
+        {
+          "title": "DeepSeek Harness 官网",
+          "url": "https://www.deepseek.com/harness/",
+          "desc": "官方介绍、下载与开源说明",
+          "addedAt": "2026-10-23"
+        },
+        {
+          "title": "deepseek-harness 仓库",
+          "url": "https://github.com/deepseek-ai/deepseek-harness",
+          "desc": "源码、文档与 issue"
+        },
+        {
+          "title": "dsh-plugin 标签",
+          "url": "https://github.com/topics/dsh-plugin",
+          "desc": "GitHub 上按标签找插件"
+        },
+        {
+          "title": "awesome-dsh-plugin",
+          "url": "https://github.com/beancookie/awesome-dsh-plugin",
+          "desc": "社区维护的插件精选",
+          "addedAt": "2026-10-23"
+        },
+        {
+          "title": "DSH 插件市场",
+          "url": "https://github.com/bradeGithub/DSH-Plugins-Marketplace",
+          "desc": "浏览、搜索、一键安装"
+        },
+        {
+          "title": "mcp.so",
+          "url": "https://mcp.so/",
+          "desc": "MCP 服务器目录，按用途筛选",
+          "addedAt": "2026-10-23"
+        },
+        {
+          "title": "Smithery",
+          "url": "https://smithery.ai/",
+          "desc": "MCP 服务器注册表与接入"
+        },
+        {
+          "title": "Glama MCP",
+          "url": "https://glama.ai/mcp/servers",
+          "desc": "MCP 索引与客户端兼容性标注"
+        },
+        {
+          "title": "MCP 官方 servers",
+          "url": "https://github.com/modelcontextprotocol/servers",
+          "desc": "官方维护的参考服务器集合"
+        },
+        {
+          "title": "awesome-mcp-servers",
+          "url": "https://github.com/punkpeye/awesome-mcp-servers",
+          "desc": "社区汇总的 MCP 清单"
+        }
+      ]
+    },
+    {
+      "id": "docs",
+      "title": "开发文档",
+      "titleEn": "Documentation",
+      "links": [
+        {
+          "title": "MDN",
+          "url": "https://developer.mozilla.org/zh-CN/",
+          "desc": "Web 标准与 API 文档",
+          "addedAt": "2026-03-07"
+        },
+        {
+          "title": "GitHub",
+          "url": "https://github.com/",
+          "desc": "代码托管与开源项目"
+        },
+        {
+          "title": "npm",
+          "url": "https://www.npmjs.com/",
+          "desc": "JS 包检索"
+        },
+        {
+          "title": "PyPI",
+          "url": "https://pypi.org/",
+          "desc": "Python 包检索"
+        },
+        {
+          "title": "DevDocs",
+          "url": "https://devdocs.io/",
+          "desc": "多语言文档聚合"
+        },
+        {
+          "title": "Node.js API",
+          "url": "https://nodejs.org/docs/latest/api/",
+          "desc": "Node 内置模块手册"
+        },
+        {
+          "title": "Python 文档",
+          "url": "https://docs.python.org/zh-cn/3/",
+          "desc": "官方中文文档"
+        },
+        {
+          "title": "TypeScript 文档",
+          "url": "https://www.typescriptlang.org/docs/",
+          "desc": "类型系统与配置"
+        },
+        {
+          "title": "React 文档",
+          "url": "https://react.dev/",
+          "desc": "React 官方教程与 API",
+          "hot": true
+        },
+        {
+          "title": "Can I use",
+          "url": "https://caniuse.com/",
+          "desc": "浏览器特性兼容查询"
+        },
+        {
+          "title": "Stack Overflow",
+          "url": "https://stackoverflow.com/",
+          "desc": "问答与踩坑记录",
+          "addedAt": "2026-05-16"
+        },
+        {
+          "title": "Vite 文档",
+          "url": "https://vite.dev/",
+          "desc": "前端构建工具与插件 API"
+        }
+      ]
+    },
+    {
+      "id": "deploy",
+      "title": "部署与运维",
+      "titleEn": "Deploy & Ops",
+      "links": [
+        {
+          "title": "Vercel",
+          "url": "https://vercel.com/",
+          "desc": "前端部署与预览环境",
+          "hot": true
+        },
+        {
+          "title": "Cloudflare",
+          "url": "https://dash.cloudflare.com/",
+          "desc": "DNS、CDN 与 Workers"
+        },
+        {
+          "title": "Netlify",
+          "url": "https://app.netlify.com/",
+          "desc": "静态站托管",
+          "hot": true,
+          "addedAt": "2026-09-11"
+        },
+        {
+          "title": "Railway",
+          "url": "https://railway.com/",
+          "desc": "托管后端与数据库"
+        },
+        {
+          "title": "Fly.io",
+          "url": "https://fly.io/",
+          "desc": "全球边缘容器"
+        },
+        {
+          "title": "Supabase",
+          "url": "https://supabase.com/dashboard",
+          "desc": "开源 Postgres 后端",
+          "hot": true,
+          "addedAt": "2026-10-22"
+        },
+        {
+          "title": "Docker Hub",
+          "url": "https://hub.docker.com/",
+          "desc": "镜像仓库"
+        },
+        {
+          "title": "阿里云",
+          "url": "https://www.aliyun.com/",
+          "desc": "国内云主机与 OSS",
+          "hot": true,
+          "addedAt": "2026-05-25"
+        },
+        {
+          "title": "腾讯云",
+          "url": "https://cloud.tencent.com/",
+          "desc": "国内云主机与 COS"
+        },
+        {
+          "title": "Cloudflare Status",
+          "url": "https://www.cloudflarestatus.com/",
+          "desc": "故障与维护公告"
+        },
+        {
+          "title": "GitHub Status",
+          "url": "https://www.githubstatus.com/",
+          "desc": "GitHub 可用性"
+        }
+      ]
+    },
+    {
+      "id": "tools",
+      "title": "效率工具",
+      "titleEn": "Utilities",
+      "links": [
+        {
+          "title": "IT-Tools",
+          "url": "https://it-tools.tech/",
+          "desc": "近百个开发小工具合集",
+          "addedAt": "2026-07-05"
+        },
+        {
+          "title": "regex101",
+          "url": "https://regex101.com/",
+          "desc": "正则调试与解释",
+          "hot": true,
+          "addedAt": "2026-09-12"
+        },
+        {
+          "title": "JSON Crack",
+          "url": "https://jsoncrack.com/",
+          "desc": "JSON 可视化"
+        },
+        {
+          "title": "CyberChef",
+          "url": "https://gchq.github.io/CyberChef/",
+          "desc": "编码、加密、数据转换",
+          "addedAt": "2026-04-05"
+        },
+        {
+          "title": "crontab.guru",
+          "url": "https://crontab.guru/",
+          "desc": "Cron 表达式解析"
+        },
+        {
+          "title": "transform.tools",
+          "url": "https://transform.tools/",
+          "desc": "JSON/TS/SQL 互转"
+        },
+        {
+          "title": "Excalidraw",
+          "url": "https://excalidraw.com/",
+          "desc": "手绘风白板",
+          "addedAt": "2026-10-22"
+        },
+        {
+          "title": "Carbon",
+          "url": "https://carbon.now.sh/",
+          "desc": "代码截图美化"
+        },
+        {
+          "title": "Squoosh",
+          "url": "https://squoosh.app/",
+          "desc": "图片压缩与格式转换",
+          "addedAt": "2026-04-04"
+        },
+        {
+          "title": "TinyPNG",
+          "url": "https://tinypng.com/",
+          "desc": "PNG/JPG 无损压缩"
+        },
+        {
+          "title": "Diffchecker",
+          "url": "https://www.diffchecker.com/",
+          "desc": "文本差异对比",
+          "hot": true,
+          "addedAt": "2026-05-25"
+        },
+        {
+          "title": "Hoppscotch",
+          "url": "https://hoppscotch.io/",
+          "desc": "轻量 API 调试，免登录可用"
+        },
+        {
+          "title": "draw.io",
+          "url": "https://app.diagrams.net/",
+          "desc": "架构图与流程图"
+        }
+      ]
+    },
+    {
+      "id": "news",
+      "title": "资讯与榜单",
+      "titleEn": "News & Rankings",
+      "links": [
+        {
+          "title": "机器之心",
+          "url": "https://www.jiqizhixin.com/",
+          "desc": "中文 AI 媒体，模型与论文动态"
+        },
+        {
+          "title": "量子位",
+          "url": "https://www.qbitai.com/",
+          "desc": "中文 AI 资讯，偏产品与产业",
+          "addedAt": "2026-10-23"
+        },
+        {
+          "title": "LMArena",
+          "url": "https://lmarena.ai/",
+          "desc": "众包盲测的模型竞技场排名",
+          "addedAt": "2026-10-23"
+        },
+        {
+          "title": "Artificial Analysis",
+          "url": "https://artificialanalysis.ai/",
+          "desc": "模型速度、价格与质量对比"
+        },
+        {
+          "title": "Hacker News",
+          "url": "https://news.ycombinator.com/",
+          "desc": "技术与创业讨论，新模型常在此首发"
+        },
+        {
+          "title": "Simon Willison",
+          "url": "https://simonwillison.net/",
+          "desc": "每周 AI 工具实测与点评"
+        }
+      ]
+    },
+    {
+      "id": "design",
+      "title": "设计参考",
+      "titleEn": "Design",
+      "source": "webstack",
+      "links": [
+        {
+          "title": "Dribbble",
+          "url": "https://dribbble.com/",
+          "desc": "全球UI设计师作品分享平台。",
+          "addedAt": "2026-10-10"
+        },
+        {
+          "title": "Behance",
+          "url": "https://www.behance.net/",
+          "desc": "Adobe旗下的设计师交流平台，来自世界各地的设计师在这里分享自己的作品。",
+          "hot": true
+        },
+        {
+          "title": "站酷",
+          "url": "https://www.zcool.com.cn/",
+          "desc": "中国人气设计师互动平台"
+        },
+        {
+          "title": "花瓣",
+          "url": "https://huaban.com/",
+          "desc": "收集灵感,保存有用的素材",
+          "addedAt": "2026-08-13"
+        },
+        {
+          "title": "Figma Community",
+          "url": "https://www.figma.com/community/",
+          "desc": "社区设计文件与插件模板",
+          "addedAt": "2026-10-21"
+        },
+        {
+          "title": "Mobbin",
+          "url": "https://mobbin.com/",
+          "desc": "移动端与网页设计模式库"
+        },
+        {
+          "title": "Awwwards",
+          "url": "https://www.awwwards.com/",
+          "desc": "Awwwards are the Website Awards that recognize and promote the talent and effort of the best developers, designers and web agencies in the world."
+        },
+        {
+          "title": "iconfont",
+          "url": "https://www.iconfont.cn/",
+          "desc": "阿里巴巴矢量图标库"
+        },
+        {
+          "title": "Google Fonts",
+          "url": "https://fonts.google.com/",
+          "desc": "Making the web more beautiful, fast, and open through great typography"
+        },
+        {
+          "title": "Coolors",
+          "url": "https://coolors.co/",
+          "desc": "The super fast color schemes generator!"
+        },
+        {
+          "title": "Unsplash",
+          "url": "https://unsplash.com/",
+          "desc": "免费高清图库",
+          "addedAt": "2026-08-14"
+        },
+        {
+          "title": "LottieFiles",
+          "url": "https://lottiefiles.com/",
+          "desc": "免费动效与 Lottie 资源"
+        }
+      ]
+    }
+  ]
+}

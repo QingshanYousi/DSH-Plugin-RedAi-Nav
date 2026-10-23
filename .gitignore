@@ -1,0 +1,7 @@
+node_modules/
+.workbuddy/
+*.log
+.DS_Store
+
+# generated
+preview/

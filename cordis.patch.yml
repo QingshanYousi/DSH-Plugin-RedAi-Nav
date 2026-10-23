@@ -1,0 +1,11 @@
+# Bundle patch for dsh-plugin-redai-nav.
+# One loader row: the plugin package itself. Its host half does nothing; the
+# browser half is served from ./lib/client.js by the client module system and
+# registers the sidebar entry plus its main-panel page.
+#
+# Do not also add this row to the profile's own cordis.patch.yml: a bundle row
+# plus a hand-written patch row loads the package twice (see the marketplace
+# STANDARD §6.4, "double registration crashes startup").
+- insert:
+    - id: ui-redai-nav
+      name: dsh-plugin-redai-nav
