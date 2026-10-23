@@ -76,7 +76,7 @@ const SEED = {
 }
 
 /** Renders one page and returns its absolute path. */
-export function renderPage({ mode = 'sites', width = 1180 } = {}) {
+export function renderPage({ mode = 'sites', width = 1180, site = '', solo = false } = {}) {
   const source = readFileSync(join(ROOT, 'lib/client.js'), 'utf8')
   const i18n = JSON.parse(readFileSync(join(ROOT, 'data/i18n.json'), 'utf8'))
   let styleText = ''
@@ -136,6 +136,8 @@ export function renderPage({ mode = 'sites', width = 1180 } = {}) {
   const shell = (node) => ({ type: 'div', props: { className: 'redaiNavPage', children: { type: 'div', props: { className: 'redaiDetailShell', children: node } } } })
 
   let tree
+  /** Distinguishes the variants a caller renders in one run (detail pages). */
+  let fileTag = ''
   if (mode === 'toast') {
     tree = {
       type: 'div',
@@ -152,6 +154,37 @@ export function renderPage({ mode = 'sites', width = 1180 } = {}) {
         ],
       },
     }
+  } else if (mode === 'detail') {
+    // The site detail page, for measuring it against the *host's* real tokens —
+    // preview.mjs only ever declares the light set, so dark-mode contrast on the
+    // document layout cannot be read from it. `--site` picks the site; `--solo`
+    // fakes a one-site group (the shipped list has none: smallest group is 6).
+    const links = JSON.parse(readFileSync(join(ROOT, 'data/links.json'), 'utf8'))
+    const details = JSON.parse(readFileSync(join(ROOT, 'data/details.json'), 'utf8'))
+    const argAt = (flag) => {
+      const at = process.argv.indexOf(flag)
+      return at > -1 ? process.argv[at + 1] : ''
+    }
+    const url = site || argAt('--site') || Object.keys(details.sites)[0]
+    const link = links.groups.flatMap((group) => group.links).find((row) => row.url === url)
+    if (!link) throw new Error('no such site in data/links.json: ' + url)
+    const group = links.groups.find((row) => row.links.some((entry) => entry.url === url)) || null
+    const wantSolo = solo || process.argv.includes('--solo')
+    // A caller can measure several variants in one process, so each gets its own
+    // file instead of overwriting the previous one.
+    fileTag = wantSolo ? '-solo' : (url === Object.keys(details.sites)[0] ? '' : '-' + url.replace(/^https?:\/\//, '').replace(/[^\w]+/g, '-').replace(/-+$/, ''))
+    tree = shell(bundle.__components.SiteDetail({
+      link,
+      detail: details.sites[url] || {},
+      groupTitle: group ? group.title : '',
+      siblings: group && !wantSolo ? group.links : [link],
+      t,
+      starred: false,
+      onStar: () => {},
+      onVisit: () => {},
+      onDetail: () => {},
+      onBack: () => {},
+    }))
   } else if (mode === 'plugin-detail') {
     const ranking = JSON.parse(readFileSync(join(ROOT, 'data/plugins.json'), 'utf8'))
     const rows = ranking.categories.flatMap((category) => category.items.map((item) => ({ category, item })))
@@ -205,7 +238,7 @@ ${styleText}
 
   mkdirSync(OUT_DIR, { recursive: true })
   const suffix = width === 1180 ? '' : '-' + width
-  const name = mode === 'plugin-detail' ? 'plugin-detail' : mode
+  const name = (mode === 'plugin-detail' ? 'plugin-detail' : mode) + fileTag
   const file = join(OUT_DIR, name + suffix + '.html')
   writeFileSync(file, html)
   return file
