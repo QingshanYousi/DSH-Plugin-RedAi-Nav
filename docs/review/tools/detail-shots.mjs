@@ -5,8 +5,9 @@
  *
  * Regenerates the preview HTML files it needs, screenshots each through headless
  * Edge, and measures what a screenshot alone cannot prove: the rail is visible at
- * a 1180 shell and gone at 617, the inline group list takes over at 617, no panel
- * scrolls sideways, and no sibling name overflows its box.
+ * a 1180 shell and gone at 617, the body keeps the group section only when the
+ * rail does not repeat it, no panel scrolls sideways, and no sibling name
+ * overflows its box.
  *
  * Shots land in preview/ (repo-local, like the other preview artifacts); the last
  * one replaces docs/detail.png, the image README embeds.
@@ -36,7 +37,10 @@ const MEASURE = `(() => {
   const inline = document.querySelector('#redai-sec-siblings')
   const top = document.querySelector('.redaiDetailTop')
   const star = document.querySelector('.redaiNavStar')
-  const shown = (node) => Boolean(node) && getComputedStyle(node).display !== 'none'
+  // getClientRects rather than computed style: a child of a hidden rail still
+  // reports display:block, which would claim a block is on screen when its whole
+  // column has been dropped.
+  const shown = (node) => Boolean(node) && node.getClientRects().length > 0
   const rect = (node) => node.getBoundingClientRect()
   const names = [...document.querySelectorAll('.redaiSiblingName')]
   return {
@@ -53,6 +57,8 @@ const MEASURE = `(() => {
     siblingRows: document.querySelectorAll('.redaiSiblingGrid > li').length,
     railRows: document.querySelectorAll('.redaiSiblingList > li').length,
     bodyDesc: document.querySelectorAll('.redaiSiblingDesc').length,
+    emptyNotes: document.querySelectorAll('.redaiSiblingEmpty').length,
+    railHereShown: shown(document.querySelector('.redaiRailHere')),
     starX: star ? Math.round(rect(star).left) : null,
     starTop: star ? Math.round(rect(star).top) : null,
     topWidth: top ? Math.round(rect(top).width) : null,
@@ -101,16 +107,24 @@ const wide = await shoot(detailHtml, { width: 1180, height: 1200, viewport: 1180
 render(['--detail', '--width', '617'])
 const narrow = await shoot(detailHtml, { width: 617, height: 'auto', viewport: 700, viewportHeight: 3200 }, join(OUT, 'qa-detail-617.png'))
 
-// 3. A site with no editorial content at all: the page every ⓘ now opens.
+// 3. A site with no editorial content at all: the page every ⓘ now opens, with
+//    the two-column group cards that keep the lower half from being blank.
 const skeletonHtml = join(OUT, 'detail-skeleton.html')
 render(['--detail', '--site', 'https://it-tools.tech/'])
-const skeleton = await shoot(skeletonHtml, { width: 1180, height: 1000, viewport: 1180 }, join(OUT, 'qa-detail-skeleton-1180.png'))
+const skeleton = await shoot(skeletonHtml, { width: 1180, height: 1000, viewport: 1180 }, join(OUT, 'qa-detail-skeleton-group-1180.png'))
 
-// 4. The image README embeds — same shell width as the one it replaces.
+// 4. The same page in a one-site group. The list has no such group, so the
+//    preview fakes one (`--solo`): the rail must degrade to heading + current
+//    site line and the body must own the single copy of the empty sentence.
+const soloHtml = join(OUT, 'detail-solo.html')
+render(['--detail', '--site', 'https://it-tools.tech/', '--solo'])
+const solo = await shoot(soloHtml, { width: 1180, height: 1000, viewport: 1180 }, join(OUT, 'qa-detail-skeleton-1180.png'))
+
+// 5. The image README embeds — same shell width as the one it replaces.
 render(['--detail', '--width', '1080'])
 await shoot(detailHtml, { width: 1080, height: 680, viewport: 1080 }, join(ROOT, 'docs', 'detail.png'))
 
-for (const [name, layout] of Object.entries({ wide, narrow, skeleton })) {
+for (const [name, layout] of Object.entries({ wide, narrow, skeleton, solo })) {
   console.log('%s %s', name, JSON.stringify(layout))
 }
 

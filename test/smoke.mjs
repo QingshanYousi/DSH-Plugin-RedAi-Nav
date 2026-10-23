@@ -346,8 +346,17 @@ assert.deepEqual(
 )
 assert.equal(byClassIn(skeleton, 'redaiRailNav').length, 1,
   'the group block is present even when the group is empty')
-assert.equal(byClassIn(skeleton, 'redaiSiblingEmpty').length, 2,
-  'both placements say the group is empty instead of rendering nothing')
+// A one-site group has nothing to list, so the empty sentence is said exactly
+// once — in the body. The rail keeps its heading and the current-site line; the
+// same sentence twice, side by side, reads as unfinished rather than as design.
+assert.equal(byClassIn(skeleton, 'redaiSiblingEmpty').length, 1,
+  'the empty sentence appears once, and only in the body')
+assert.equal(byClassIn(skeleton, 'redaiSiblingList').length, 0,
+  'the rail renders no list when the group has no other site')
+assert.equal(byClassIn(skeleton, 'redaiSiblingGrid').length, 0,
+  'nor does the body — there is nothing to lay out')
+assert.equal(byClassIn(skeleton, 'redaiRailHere').length, 1,
+  'the rail still says which site you are on')
 assert.equal(byClassIn(skeleton, 'redaiDocFoot').length, 0,
   'a page with no editorial record claims no compile date')
 assert.equal(byClassIn(skeleton, 'redaiDocToc').length, 0,
@@ -365,11 +374,15 @@ assert.equal(byClassIn(bare, 'redaiInfoValue')[1].props.children, '—',
   'an unknown group is a dash, not a guess')
 
 // ── the contents block earns its width at four entries, not three ────────────
+// Both cases carry a sibling on purpose: the group section can only be dropped
+// when the rail is actually repeating a list, so an empty group would make the
+// assertion below pass for the wrong reason.
+const neighbour = { title: '邻居站点', url: 'https://neighbour.test/', desc: '另一句真实描述' }
 const threeEntries = renderSite({
   link: blankLink,
   detail: { facts: [{ label: '定价', value: '免费' }] },
   groupTitle: '测试分组',
-  siblings: [],
+  siblings: [blankLink, neighbour],
 })
 assert.deepEqual(sectionIds(threeEntries), ['intro', 'info', 'facts', 'siblings'])
 assert.equal(byClassIn(threeEntries, 'redaiDocToc').length, 0, 'three entries restate the page, so no contents list')
@@ -377,7 +390,7 @@ const fourEntries = renderSite({
   link: blankLink,
   detail: { facts: [{ label: '定价', value: '免费' }], highlights: ['一句真实的技术说明'] },
   groupTitle: '测试分组',
-  siblings: [],
+  siblings: [blankLink, neighbour],
 })
 assert.equal(byClassIn(fourEntries, 'redaiDocToc').length, 1, 'four entries do earn one')
 assert.equal(byClassIn(fourEntries, 'redaiTocLink').length, 4)
@@ -424,6 +437,23 @@ assert.equal(byClassIn(fourEntries, 'redaiDocWideHidden').length, 1,
   'four entries: the rail takes over, so the body drops it')
 assert.equal(byClassIn(skeleton, 'redaiDocSection').length, 3,
   'the skeleton page is three sections, not two')
+
+// The one case where the two rules could fight: a site with a full editorial
+// record that is alone in its group. The rail has no list to repeat, so the body
+// keeps the section even though it has a contents list — the rule is "hide what
+// the rail repeats", never "hide whenever a contents list exists". This is also
+// what keeps the empty sentence visible at both widths: one copy, always.
+const soloEditorial = renderSite({
+  link: blankLink,
+  detail: { facts: [{ label: '定价', value: '免费' }], highlights: ['一句真实的技术说明'] },
+  groupTitle: '测试分组',
+  siblings: [blankLink],
+})
+assert.equal(byClassIn(soloEditorial, 'redaiDocToc').length, 1, 'it still has a contents list')
+assert.equal(byClassIn(soloEditorial, 'redaiDocWideHidden').length, 0,
+  'a contents list alone does not hide the group section — only a repeated list does')
+assert.equal(byClassIn(soloEditorial, 'redaiSiblingEmpty').length, 1,
+  'one copy in the tree, and in the wide layout nothing is hiding it')
 
 // The body cards are the fuller shape: the list's own description under the name.
 const cardOf = (list) => list.props.children.map((li) => li.props.children)

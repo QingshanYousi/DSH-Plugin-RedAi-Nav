@@ -578,16 +578,22 @@ function SiteDetail({ link, detail, groupTitle, siblings, t, starred, onStar, on
   /**
    * The group list, in both of the shapes the page uses: the rail's compact one,
    * and the body's fuller one (cards with the description the list ships).
+   * Null when the group has no other site — the sentence that says so is spoken
+   * once, by the body, so the rail degrades to its heading and the current line
+   * rather than repeating it in a second column.
    */
-  const siblingList = (listClass, withDesc) => others.length === 0
-    ? jsx('p', { className: 'redaiSiblingEmpty', children: t('detail.siblingsEmpty') })
-    : jsx('ul', {
-      className: listClass,
-      children: others.map((row) => jsx('li', {
-        key: row.url,
-        children: siblingLink(row, withDesc),
-      })),
-    })
+  const siblingList = (listClass, withDesc) => (others.length === 0 ? null : jsx('ul', {
+    className: listClass,
+    children: others.map((row) => jsx('li', {
+      key: row.url,
+      children: siblingLink(row, withDesc),
+    })),
+  }))
+  /** The single copy of "this group has no other site yet". */
+  const siblingsEmpty = () => jsx('p', {
+    className: 'redaiSiblingEmpty',
+    children: t('detail.siblingsEmpty'),
+  })
 
   // 1. What it is. With no write-up the list's own description is the only real
   //    sentence we have; with neither, the section says exactly that.
@@ -755,10 +761,12 @@ function SiteDetail({ link, detail, groupTitle, siblings, t, starred, onStar, on
   //    copy is only dropped when the rail pairs it with a contents list; on a
   //    page too short for a contents list this section is substance, not a
   //    repeat, and it fills what would otherwise be half a screen of nothing.
+  //    A one-site group has nothing for the rail to list, so the body keeps the
+  //    section at every width — it is where the empty sentence lives.
   const hasContents = toc.length >= TOC_MIN
-  addSection('siblings', t('detail.siblings'), siblingList('redaiSiblingGrid', true), {
+  addSection('siblings', t('detail.siblings'), siblingList('redaiSiblingGrid', true) || siblingsEmpty(), {
     toc: false,
-    wideHidden: hasContents,
+    wideHidden: hasContents && others.length > 0,
   })
 
   return jsxs('div', {

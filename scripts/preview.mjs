@@ -90,6 +90,15 @@ const props = { ...page.options.inject(), onOpen: () => {} }
 // in headless Edge here, so the shell carries the width instead)
 const wantDetail = process.argv.includes('--detail')
 const wantPluginDetail = process.argv.includes('--plugin-detail')
+// `--solo` fakes a one-site group: the shipped list has none, and that is the
+// case where the rail has nothing to list. The page says so in a corner badge,
+// so a screenshot of the fixture cannot be mistaken for real data.
+const wantSolo = process.argv.includes('--solo')
+// A fixture must never pass for shipped data: the badge is part of the page the
+// screenshot captures, not a note buried in a commit message.
+const soloBadge = wantSolo && wantDetail
+  ? '<div style="position:fixed;left:12px;bottom:12px;z-index:9;padding:4px 8px;border-radius:6px;font:11px/16px -apple-system,system-ui,sans-serif;color:#5c5c66;background:#fff;border:.5px solid rgba(0,0,0,.18)">预览夹具：单站分组（--solo 合成，清单里没有单站分组）</div>'
+  : ''
 const widthArg = process.argv.indexOf('--width')
 const shellWidth = widthArg > -1 ? Number(process.argv[widthArg + 1]) || 1180 : 1180
 // `--id <owner/name>` picks the plugin for `--plugin-detail`; the default is the
@@ -126,6 +135,8 @@ if (wantPluginDetail) {
   const details = JSON.parse(readFileSync(join(root, 'data/details.json'), 'utf8'))
   // `--site <url>` renders any site in the list. Every site has a page now, so
   // the interesting screenshot is the one with no editorial record behind it.
+  // `--solo` fakes a one-site group (the list has none): that is the case where
+  // the rail has nothing to list and the body keeps the section to itself.
   const siteAt = process.argv.indexOf('--site')
   const wantedSite = siteAt > -1 ? process.argv[siteAt + 1] : ''
   const url = wantedSite || Object.keys(details.sites)[0]
@@ -136,7 +147,7 @@ if (wantPluginDetail) {
     link,
     detail: details.sites[url] || {},
     groupTitle: group ? group.title : '',
-    siblings: group ? group.links : [],
+    siblings: group && !wantSolo ? group.links : [link],
     t: props.t,
     starred: true,
     onStar: () => {},
@@ -208,13 +219,15 @@ ${styleText}
   <div class="row">▤ wzdh</div><div class="row">▤ 默认工作区</div>
 </div>
 <div class="main">${body}</div>
-</div></body></html>`
+</div>${soloBadge}</body></html>`
 
 mkdirSync(join(root, 'preview'), { recursive: true })
 const outName = wantPluginDetail
   ? 'plugin.html'
   : wantDetail
-    ? (process.argv.indexOf('--site') > -1 ? 'detail-skeleton.html' : 'detail.html')
+    ? (wantSolo
+      ? 'detail-solo.html'
+      : process.argv.indexOf('--site') > -1 ? 'detail-skeleton.html' : 'detail.html')
     : wantPlugins ? 'plugins.html' : 'index.html'
 writeFileSync(join(root, 'preview', outName), html)
 console.log('wrote preview/%s (%d bytes)', outName, html.length)
