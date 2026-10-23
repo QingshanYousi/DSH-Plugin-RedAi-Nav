@@ -482,11 +482,30 @@ assert.match(clientSource, /@container \(max-width:520px\)\{[\s\S]*?\.redaiSibli
   'the card grid folds to one column when two would be too narrow')
 assert.match(clientSource, /@container \(max-width:520px\)\{[\s\S]*?\.redaiDetailTop\{max-width:none\}/,
   'the narrow layout releases the header cap instead of clipping the star')
+// Small print (10–11px) must not fall back to the host's light tertiary, which
+// measures 3.71:1 on white. The deepened pair is the same one the board's grey
+// labels use; detail-contrast.mjs re-measures it in a browser, this pins the rule.
+const GREY_PAIR = 'color:light-dark(#61666b,var(--dsw-alias-label-tertiary))'
+const smallPrintRules = ['.redaiInfoLabel', '.redaiSiblingHost', '.redaiRailHere', '.redaiTocTitle', '.redaiSiblingEmpty']
+  .map((selector) => {
+    const at = clientSource.indexOf(selector + '{')
+    return { selector, css: at < 0 ? '' : clientSource.slice(at, clientSource.indexOf('}', at)) }
+  })
+assert.deepEqual(
+  smallPrintRules.filter((rule) => rule.css.indexOf(GREY_PAIR) < 0).map((rule) => rule.selector),
+  [],
+  'every small-print rule keeps the light-mode grey that clears 4.5:1',
+)
 
-// ── a sibling click opens the page it has, else the site ────────────────────
+// ── a sibling click opens that site's page, editorial record or not ──────────
+// This block is rendered from a site with **no** editorial content, because that
+// is the case that used to be wrong: the row consulted `DETAILS` and sent 87 of
+// 88 sites straight out of the panel. Every row must now go through `onDetail`,
+// which is the same door the cards use.
 const routeVisits = []
 const routeDetails = []
 const routeCurrent = detailGroup.links.find((link) => link.url !== detailUrl)
+assert.ok(!details.sites[routeCurrent.url], 'the page under test has no editorial record')
 const routedNodes = renderSite({
   link: routeCurrent,
   detail: {},
@@ -501,11 +520,26 @@ assert.ok(writtenSibling, 'the site that has a page of its own is listed as a si
 let siblingPrevented = false
 writtenSibling.props.onClick({ preventDefault: () => { siblingPrevented = true } })
 assert.ok(siblingPrevented, 'a sibling click never falls through to the browser')
-assert.deepEqual(routeDetails, [detailUrl], 'a sibling with a page opens that page')
+assert.deepEqual(routeDetails, [detailUrl], 'a sibling with editorial content opens its page')
 const plainSibling = routeLinks.find((node) => node.props.href !== detailUrl)
 plainSibling.props.onClick({ preventDefault: () => {} })
-assert.deepEqual(routeVisits, [plainSibling.props.href], 'a sibling without a page opens the site directly')
-assert.equal(routeDetails.length, 1, 'opening a site never also opens a page')
+assert.deepEqual(routeDetails, [detailUrl, plainSibling.props.href],
+  'a sibling with no editorial content opens its skeleton page, not the external site')
+assert.deepEqual(routeVisits, [], 'no sibling click leaves the panel')
+// The fallback still has to work for a host that renders the document without a
+// detail handler — otherwise "no page" would mean "nothing happens".
+const fallbackVisits = []
+const fallbackNodes = renderSite({
+  link: routeCurrent,
+  detail: {},
+  groupTitle: detailGroup.title,
+  siblings: detailGroup.links,
+  onVisit: (url) => fallbackVisits.push(url),
+})
+const fallbackRow = byClassIn(fallbackNodes, 'redaiSibling')[0]
+fallbackRow.props.onClick({ preventDefault: () => {} })
+assert.deepEqual(fallbackVisits, [fallbackRow.props.href],
+  'without a detail handler the row still opens the site instead of doing nothing')
 
 // ── plugin ranking: v2 data contract ───────────────────────────────────────
 // v1 was twelve hand-written cards with a curated `why` / `highlights` /
