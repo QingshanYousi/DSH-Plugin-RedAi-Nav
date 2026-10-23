@@ -1,17 +1,16 @@
 /**
- * Archived-plugin card audit: "quiet" without dimming the text.
+ * Archived-row audit: "quiet" without dimming the text.
  *
  *   node docs/review/tools/archived.mjs
  *
- * Two things have to hold at once, and they pull in opposite directions:
- *   1. no ancestor `opacity` — a group opacity multiplies both the glyph and its
- *      wash toward the page, which collapses contrast (2.4:1 at .62) and cannot
- *      be bought back without reaching 1.0;
- *   2. the card still reads as quieter than a normal one, still works as a
- *      button, still takes focus.
+ * v2 ranks archived repositories last and marks them with a badge — it does not
+ * fade them. That is deliberate: the rank, the name and the stars are still text
+ * a user has to read, and WCAG's inactive-state exemption does not apply to a
+ * button that still opens a detail page. The v1 card tried a .62 wash and landed
+ * at 2.40:1, which is exactly the trap this file exists to keep out.
  *
  * So: walk the opacity chain, compare computed fill/border and *sampled pixels*
- * against a normal card (rest + hover), and exercise focus/a11y.
+ * of an archived row against a normal one, and exercise focus/a11y.
  */
 import { renderPage } from './render.mjs'
 import { withPage, fileUrl, sleep, stopBrowser } from './cdp.mjs'
@@ -21,29 +20,47 @@ const page = renderPage({ mode: 'plugins' })
 
 const PROBE = String.raw`
 (() => {
-  const normal = [...document.querySelectorAll('.redaiPluginCard')].find((c) => c.className.indexOf('Archived') < 0)
-  const archived = document.querySelector('.redaiPluginCardArchived')
+  const rows = [...document.querySelectorAll('.redaiRankRow')]
+  let archived = rows.find((row) => row.querySelector('.redaiBadge.archived')) || null
+  // A fat category hides every archived repository below the top ten, so the
+  // audit would have nothing to measure. Injecting the badge keeps the check
+  // alive against the stylesheet itself rather than against today's data.
+  let synthetic = false
+  if (!archived && rows[0]) {
+    const badge = document.createElement('span')
+    badge.className = 'redaiBadge archived'
+    badge.textContent = '已归档'
+    rows[0].querySelector('.redaiRankRowMeta').appendChild(badge)
+    archived = rows[0]
+    synthetic = true
+  }
+  const normal = rows.find((row) => row !== archived) || null
   const chain = (el) => { const out = []; let n = el; while (n && n !== document.documentElement) { out.push({ cls: String(n.className || n.tagName), op: getComputedStyle(n).opacity }); n = n.parentElement } return out }
-  const describe = (card) => {
-    const cs = getComputedStyle(card)
-    const r = card.getBoundingClientRect()
+  const describe = (row) => {
+    if (!row) return null
+    const cs = getComputedStyle(row)
+    const r = row.getBoundingClientRect()
     return {
       bg: cs.backgroundColor,
-      bgImage: cs.backgroundImage,
-      borderColor: cs.borderTopColor,
+      borderTop: cs.borderTopColor,
+      borderTopWidth: cs.borderTopWidth,
       cursor: cs.cursor,
-      nameColor: getComputedStyle(card.querySelector('.redaiPluginName')).color,
+      height: Math.round(r.height),
+      numColor: getComputedStyle(row.querySelector('.redaiRankRowNum')).color,
+      titleColor: getComputedStyle(row.querySelector('.redaiRankRowTitle')).color,
+      metaColor: getComputedStyle(row.querySelector('.redaiRankRowMeta')).color,
       rect: { x: r.left, y: r.top, w: r.width, h: r.height },
-      badges: [...card.querySelectorAll('.redaiBadge')].map((b) => ({ cls: b.className, color: getComputedStyle(b).color, bg: getComputedStyle(b).backgroundColor })),
+      badges: [...row.querySelectorAll('.redaiBadge')].map((b) => ({ cls: b.className, color: getComputedStyle(b).color, bg: getComputedStyle(b).backgroundColor })),
     }
   }
-  archived.focus()
+  if (archived) archived.focus()
   return {
+    synthetic,
     normal: describe(normal),
     archived: describe(archived),
-    fadedAncestors: chain(archived).filter((n) => n.op !== '1'),
-    fadedBadgeAncestors: chain(archived.querySelector('.redaiBadge')).filter((n) => n.op !== '1'),
-    a11y: {
+    fadedAncestors: archived ? chain(archived).filter((n) => n.op !== '1') : null,
+    fadedBadgeAncestors: archived ? chain(archived.querySelector('.redaiBadge')).filter((n) => n.op !== '1') : null,
+    a11y: archived ? {
       tag: archived.tagName,
       type: archived.getAttribute('type'),
       disabled: archived.disabled,
@@ -52,7 +69,7 @@ const PROBE = String.raw`
       alive: document.activeElement === archived && archived.matches(':focus'),
       focusVisible: archived.matches(':focus-visible'),
       outline: getComputedStyle(archived).outline,
-    },
+    } : null,
   }
 })()`
 
@@ -68,27 +85,41 @@ for (const theme of ['light', 'dark']) {
   const res = await withPage(fileUrl(page), async ({ evaluate, s, forcePseudo }) => {
     if (theme === 'dark') await evaluate(`document.documentElement.classList.add('dark'); document.body.setAttribute('data-ds-dark-theme','')`)
     await sleep(600)
-    await evaluate(`document.querySelector('.redaiPluginCardArchived').scrollIntoView({ block: 'center' })`)
+    await evaluate(`(() => {
+      const rows = [...document.querySelectorAll('.redaiRankRow')]
+      const target = rows.find((row) => row.querySelector('.redaiBadge.archived')) || rows[0]
+      if (target) target.scrollIntoView({ block: 'center' })
+    })()`)
     await sleep(200)
     const probe = await evaluate(PROBE)
+    if (!probe.archived) return { probe, rest: null, hover: null }
     const a = probe.archived.rect
     const n = probe.normal.rect
-    const rest = { archivedCard: await sample(s, a.x + 5, a.y + 5), normalCard: await sample(s, n.x + 5, n.y + 5), pageBg: await sample(s, 2, 2) }
-    await forcePseudo('.redaiPluginCardArchived', ['hover'])
+    const rest = {
+      archivedRow: await sample(s, a.x + 5, a.y + 5),
+      normalRow: await sample(s, n.x + 5, n.y + 5),
+      pageBg: await sample(s, 2, 2),
+    }
+    await forcePseudo('.redaiRankRow', ['hover'])
     await sleep(600)
-    const hovered = await evaluate(PROBE)
-    const hover = { archivedCard: await sample(s, a.x + 5, a.y + 5) }
-    await forcePseudo('.redaiPluginCardArchived', [])
-    return { probe, hovered, rest, hover }
+    const hover = { archivedRow: await sample(s, a.x + 5, a.y + 5) }
+    await forcePseudo('.redaiRankRow', [])
+    return { probe, rest, hover }
   }, { width: 1180, height: 1000 })
 
   console.log(`\n===== ${theme} =====`)
-  console.log('normal  card :', JSON.stringify({ bg: res.probe.normal.bg, border: res.probe.normal.borderColor }))
-  console.log('archive card :', JSON.stringify({ bg: res.probe.archived.bg, border: res.probe.archived.borderColor, bgImage: res.probe.archived.bgImage }))
-  console.log('hovered      :', JSON.stringify({ bg: res.hovered.archived.bg, bgImage: res.hovered.archived.bgImage, border: res.hovered.archived.borderColor }))
-  console.log('name color   : normal', res.probe.normal.nameColor, '| archived', res.probe.archived.nameColor)
+  if (!res.probe.archived) {
+    console.log('no archived row in this category set — nothing to audit')
+    continue
+  }
+  console.log('archived row source:', res.probe.synthetic ? 'synthetic badge (no archived row in today\'s top ten)' : 'real archived row')
+  console.log('normal  row :', JSON.stringify({ bg: res.probe.normal.bg, border: res.probe.normal.borderTop, height: res.probe.normal.height }))
+  console.log('archive row :', JSON.stringify({ bg: res.probe.archived.bg, border: res.probe.archived.borderTop, height: res.probe.archived.height }))
+  console.log('hovered     :', JSON.stringify({ bg: res.probe.archived.bg }))
+  console.log('ink colors  : normal num', res.probe.normal.numColor, '| archived num', res.probe.archived.numColor,
+    '| archived title', res.probe.archived.titleColor, '| archived meta', res.probe.archived.metaColor)
   console.log('faded ancestors (must be empty):', JSON.stringify(res.probe.fadedAncestors), JSON.stringify(res.probe.fadedBadgeAncestors))
-  console.log('pixels: page', hex(res.rest.pageBg), '| normal', hex(res.rest.normalCard), '| archived', hex(res.rest.archivedCard), '| archived hover', hex(res.hover.archivedCard))
+  console.log('pixels: page', hex(res.rest.pageBg), '| normal', hex(res.rest.normalRow), '| archived', hex(res.rest.archivedRow), '| archived hover', hex(res.hover.archivedRow))
   console.log('archived badges:', JSON.stringify(res.probe.archived.badges.map((b) => ({ cls: b.cls, color: b.color, bg: b.bg }))))
   console.log('a11y/focus   :', JSON.stringify(res.probe.a11y))
 }

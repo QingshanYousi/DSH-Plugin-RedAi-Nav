@@ -46,12 +46,13 @@ const PREP = String.raw`
     rows.push({ id: n, ownerKey: owners.get(card), label, cls: el.className, fontSize: cs.fontSize, opacity: chainOpacity(el), cardBg: getComputedStyle(card).backgroundColor })
     n += 1
   }
-  const normal = [...document.querySelectorAll('.redaiPluginCard')].find((c) => c.className.indexOf('Archived') < 0)
-  const archived = document.querySelector('.redaiPluginCardArchived')
-  for (const [card, tag] of [[normal, 'normal-card'], [archived, 'archived-card']]) {
+  const rowNodes = [...document.querySelectorAll('.redaiRankRow')]
+  const normal = rowNodes.find((row) => !row.querySelector('.redaiBadge.archived'))
+  const archived = rowNodes.find((row) => row.querySelector('.redaiBadge.archived'))
+  for (const [card, tag] of [[normal, 'normal-row'], [archived, 'archived-row']]) {
     if (!card) continue
-    const meta = card.querySelector('.redaiPluginMeta')
-    for (const cls of ['none', 'yes', 'stale', 'unknown', 'active', 'archived', 'cat']) {
+    const meta = card.querySelector('.redaiRankRowMeta')
+    for (const cls of ['tagged', 'untagged', 'archived', 'cat']) {
       const el = document.createElement('span')
       el.className = 'redaiBadge ' + cls
       el.textContent = '探针'

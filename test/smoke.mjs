@@ -288,301 +288,15 @@ assert.equal(byClass(detailNodes, 'redaiDetailTitle')[0].props.children, detailL
 assert.equal(byClass(detailNodes, 'redaiSection').length, 4, 'intro, scenarios, steps, links')
 assert.ok(byClass(detailNodes, 'redaiStep').length === details.sites[detailUrl].steps.length)
 
-// ── plugin ranking: data contract ───────────────────────────────────────────
-const plugins = JSON.parse(readFileSync(join(root, 'data/plugins.json'), 'utf8'))
-assert.equal(plugins.version, 1)
-assert.equal(plugins.plugins.length, 12, 'the ranking ships 12 plugins')
-assert.ok(plugins.updatedAt && /^\d{4}-\d{2}-\d{2}$/.test(plugins.updatedAt), 'ranking needs an update date')
-assert.ok(plugins.method && plugins.method.length > 4, 'a ranking without a method loses trust')
+// ── plugin ranking: v2 data contract ───────────────────────────────────────
+// v1 was twelve hand-written cards with a curated `why` / `highlights` /
+// `caveats` block each. v2 is generated from a public awesome-list and keeps
+// only what the API can prove: identity, stars, freshness, topics. Every
+// assertion below was rewritten from its v1 counterpart, not dropped.
+const ranking = JSON.parse(readFileSync(join(root, 'data/plugins.json'), 'utf8'))
+const dict = i18n.locales.zh
 
-const CATEGORIES = ['代码', '记忆', '搜索', '界面', '协作', '运维', '上下文']
-const MAINTAINED = ['active', 'stale', 'archived']
-const ids = new Set()
-for (const plugin of plugins.plugins) {
-  assert.ok(plugin.id && !ids.has(plugin.id), `duplicate plugin id: ${plugin.id}`)
-  ids.add(plugin.id)
-  assert.match(plugin.repo, /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+$/, `${plugin.id} needs a GitHub repo`)
-  assert.equal(typeof plugin.stars, 'number', `${plugin.id} stars must be numeric`)
-  assert.ok(['none', 'yes', 'unknown'].includes(plugin.host), `${plugin.id} host must be none/yes/unknown`)
-  assert.ok(plugin.pkg && plugin.pkg.length > 0, `${plugin.id} needs an install target`)
-  assert.ok(plugin.desc.length > 6 && plugin.why.length > 10, `${plugin.id} needs a real description`)
-  assert.match(plugin.pushed, /^\d{4}-\d{2}-\d{2}$/, `${plugin.id} needs a last-commit date`)
-
-  // scraped fields — written by scripts/fetch-plugins.mjs, never hand-edited
-  assert.ok(Number.isInteger(plugin.forks) && plugin.forks >= 0, `${plugin.id} forks must be an integer`)
-  assert.ok(Number.isInteger(plugin.issues) && plugin.issues >= 0, `${plugin.id} issues must be an integer`)
-  assert.match(plugin.created, /^\d{4}-\d{2}-\d{2}$/, `${plugin.id} created must be YYYY-MM-DD`)
-  assert.equal(typeof plugin.archived, 'boolean', `${plugin.id} archived must be boolean`)
-  assert.ok(plugin.license === null || typeof plugin.license === 'string', `${plugin.id} license must be a string or null`)
-  assert.ok(plugin.language === null || typeof plugin.language === 'string', `${plugin.id} language must be a string or null`)
-  assert.ok(plugin.homepage === null || /^https?:\/\//.test(plugin.homepage), `${plugin.id} homepage must be a URL or null`)
-  assert.ok(Array.isArray(plugin.topics) && plugin.topics.length <= 4, `${plugin.id} keeps at most 4 topics`)
-  if (plugin.release !== null) {
-    assert.match(plugin.release.tag, /^\S+$/, `${plugin.id} release needs a tag`)
-    assert.match(plugin.release.at, /^\d{4}-\d{2}-\d{2}$/, `${plugin.id} release needs a date`)
-  }
-
-  // hand-written fields
-  assert.ok(CATEGORIES.includes(plugin.category), `${plugin.id} category must be one of ${CATEGORIES.join('/')}`)
-  assert.equal(plugin.highlights.length, 3, `${plugin.id} needs exactly 3 highlights`)
-  for (const line of plugin.highlights) {
-    assert.ok(line.length >= 8 && line.length <= 20, `${plugin.id} highlight must be 8-20 chars: "${line}"`)
-  }
-  assert.ok(Array.isArray(plugin.caveats) && plugin.caveats.length >= 1 && plugin.caveats.length <= 2,
-    `${plugin.id} needs 1-2 caveats`)
-  for (const line of plugin.caveats) assert.ok(line.length > 6, `${plugin.id} caveat is too short: "${line}"`)
-
-  // the derived field must agree with its inputs
-  assert.ok(MAINTAINED.includes(plugin.maintained), `${plugin.id} maintained must be ${MAINTAINED.join('/')}`)
-  const ageDays = (Date.now() - Date.parse(plugin.pushed + 'T00:00:00Z')) / 86400000
-  const derived = plugin.archived ? 'archived' : ageDays > 180 ? 'stale' : 'active'
-  assert.equal(plugin.maintained, derived, `${plugin.id} maintained disagrees with archived/pushed`)
-}
-
-// ── plugin list: responsive grid, no 760px cap ──────────────────────────────
-assert.ok(
-  clientSource.includes('.redaiPluginList{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr))'),
-  'the ranking must be a responsive auto-fill grid',
-)
-assert.ok(!/\.redaiPluginList\{[^}]*max-width/.test(clientSource),
-  'the ranking grid must not be capped, or the wide panel keeps its right-side gap')
-assert.ok(clientSource.includes('.redaiPluginCard{'), 'every card shares one class')
-assert.ok(!clientSource.includes('redaiPluginRow'), 'the single-column row styles are gone')
-
-const { PluginCard, PluginDetail, formatStars, orderPlugins, maintainedOf, categoryLabel } = exported.__components
-assert.equal(formatStars(2429), '2.4k')
-assert.equal(formatStars(17), '17')
-assert.equal(formatStars(12000), '12k')
-
-// archived sinks to the bottom, ranks stay contiguous
-const ordered = orderPlugins(plugins.plugins, Date.now())
-assert.equal(ordered.length, plugins.plugins.length)
-assert.deepEqual(ordered.map((row) => row.rank), ordered.map((_, index) => index + 1))
-const archiveCount = plugins.plugins.filter((row) => row.archived).length
-assert.ok(archiveCount > 0, 'demo data keeps at least one archived plugin')
-for (const row of ordered.slice(ordered.length - archiveCount)) {
-  assert.equal(row.maintained, 'archived', 'archived plugins must sit at the bottom')
-}
-for (const row of ordered.slice(0, ordered.length - archiveCount)) {
-  assert.notEqual(row.maintained, 'archived', 'active plugins must rank above archived ones')
-}
-assert.equal(maintainedOf({ pushed: '2000-01-01' }, Date.now()), 'stale')
-assert.equal(maintainedOf({ pushed: '2000-01-01', archived: true }, Date.now()), 'archived')
-assert.equal(maintainedOf({ pushed: '2999-01-01' }, Date.now()), 'active')
-assert.equal(maintainedOf({ pushed: 'nonsense' }, Date.now()), 'active')
-assert.equal(categoryLabel(injected.t, '代码'), i18n.locales.zh['plugin.category.code'])
-assert.equal(categoryLabel(injected.t, '???'), '???')
-
-// one card: rank + name + stars, blurb, three badges, category
-const sample = ordered.find((row) => row.id === 'dsh-call-session')
-assert.ok(sample, 'the demo ranking keeps dsh-call-session')
-const cardNodes = flatten(PluginCard({ plugin: sample, t: injected.t, onOpen: () => {} }))
-assert.equal(byClass(cardNodes, 'redaiRank')[0].props.children, String(sample.rank))
-assert.equal(byClass(cardNodes, 'redaiPluginName')[0].props.children, sample.title)
-assert.equal(byClass(cardNodes, 'redaiStars')[0].props.children, formatStars(sample.stars) + ' ★')
-assert.equal(byClass(cardNodes, 'redaiPluginDesc')[0].props.children, sample.desc)
-assert.equal(byClass(cardNodes, 'redaiBadge ' + sample.maintained)[0].props.children,
-  i18n.locales.zh['plugin.maintained.' + sample.maintained], 'the maintained badge is localized')
-assert.equal(byClass(cardNodes, 'redaiBadge ' + sample.host)[0].props.children,
-  i18n.locales.zh['plugin.host.' + sample.host])
-assert.equal(byClass(cardNodes, 'redaiBadge cat')[0].props.children, sample.category)
-assert.equal(byClass(cardNodes, 'redaiPluginMeta')[0].props.children.length, 3, 'maintained · host · last commit')
-
-const archivedPlugin = ordered[ordered.length - 1]
-const archivedCard = flatten(PluginCard({ plugin: archivedPlugin, t: injected.t, onOpen: () => {} }))
-assert.match(String(archivedCard[0].props.className), /redaiPluginCardArchived/,
-  'archived cards must be visually de-emphasised')
-
-// ── plugin detail: every block, in order ────────────────────────────────────
-const detailSample = ordered.find((row) => row.id === 'dsh-call-session')
-const pluginDetailNodes = flatten(PluginDetail({
-  plugin: detailSample,
-  t: injected.t,
-  onOpen: () => {},
-  onBack: () => {},
-}))
-assert.ok(byClass(pluginDetailNodes, 'redaiInstall')[0].props.children.includes(detailSample.pkg),
-  'the install command must name the real package')
-assert.equal(byClass(pluginDetailNodes, 'redaiPluginNote').length, 0)
-assert.equal(byClass(pluginDetailNodes, 'redaiMetrics').length, 1, 'the metric strip renders once')
-assert.equal(byClass(pluginDetailNodes, 'redaiMetric').length, 6,
-  'star / fork / issues / language / license / created')
-assert.equal(byClass(pluginDetailNodes, 'redaiStatusBar').length, 1, 'the maintenance strip renders once')
-assert.equal(byClass(pluginDetailNodes, 'redaiSection').length, 4, 'why + highlights + caveats + install')
-assert.equal(byClass(pluginDetailNodes, 'redaiHighlight').length, detailSample.highlights.length)
-assert.equal(byClass(pluginDetailNodes, 'redaiCaveat').length, detailSample.caveats.length)
-assert.equal(pluginDetailNodes.filter((node) => String(node.props.className || '').includes('redaiCaveatTitle')).length, 1,
-  'the caveats block is titled in the warning colour')
-assert.ok(byClass(pluginDetailNodes, 'redaiBadge ' + detailSample.maintained).length >= 1,
-  'the maintained badge appears in the detail head')
-assert.ok(detailSample.homepage, 'the default sample carries a homepage')
-const homepageLabel = i18n.locales.zh['plugin.homepage']
-const homepageButtons = (nodes) => nodes.filter((node) => node.props && node.props.children === homepageLabel)
-assert.equal(homepageButtons(pluginDetailNodes).length, 1,
-  'the homepage button renders only when the repo declares one')
-
-const metricValues = byClass(pluginDetailNodes, 'redaiMetricValue').map((node) => node.props.children)
-assert.deepEqual(metricValues.slice(0, 3), [
-  formatStars(detailSample.stars),
-  formatStars(detailSample.forks),
-  formatStars(detailSample.issues),
-])
-assert.equal(metricValues[3], detailSample.language)
-assert.equal(metricValues[4], detailSample.license)
-assert.equal(metricValues[5], detailSample.created)
-
-const statusTexts = byClass(pluginDetailNodes, 'redaiStatusText').map((node) => node.props.children)
-assert.equal(statusTexts[0], i18n.locales.zh['plugin.pushed'].replace('{date}', detailSample.pushed))
-assert.ok(statusTexts[1].includes(detailSample.release.tag) && statusTexts[1].includes(detailSample.release.at),
-  'the latest release carries its tag and date')
-
-const indexOfClass = (nodes, className) => nodes.findIndex((node) => String(node.props.className || '') === className)
-const head = indexOfClass(pluginDetailNodes, 'redaiDetailTitle')
-const metricsAt = indexOfClass(pluginDetailNodes, 'redaiMetrics')
-const statusAt = indexOfClass(pluginDetailNodes, 'redaiStatusBar')
-const sectionAt = indexOfClass(pluginDetailNodes, 'redaiSection')
-const installAt = indexOfClass(pluginDetailNodes, 'redaiInstall')
-assert.ok(head > -1 && head < metricsAt, 'identity comes before the metric strip')
-assert.ok(metricsAt < statusAt, 'metrics come before the maintenance strip')
-assert.ok(statusAt < sectionAt, 'the maintenance strip comes before the prose')
-assert.ok(sectionAt < installAt, 'the install command closes the content')
-
-// empty caveats / no homepage / no release collapse cleanly
-const bareDetail = flatten(PluginDetail({
-  plugin: { ...detailSample, caveats: [], homepage: null, release: null },
-  t: injected.t,
-  onOpen: () => {},
-  onBack: () => {},
-}))
-assert.equal(byClass(bareDetail, 'redaiSection').length, 3, 'no caveats block when the list is empty')
-assert.equal(byClass(bareDetail, 'redaiCaveatTitle').length, 0)
-assert.equal(byClass(bareDetail, 'redaiCaveat').length, 0)
-assert.equal(homepageButtons(bareDetail).length, 0)
-assert.equal(byClass(bareDetail, 'redaiStatusText')[1].props.children,
-  i18n.locales.zh['plugin.metrics.release'] + ' · ' + i18n.locales.zh['plugin.noRelease'])
-
-// missing scraped values read as "unknown", never as a fake zero
-const sparseDetail = flatten(PluginDetail({
-  plugin: { id: 'x', title: 'x', pkg: 'x', desc: 'x', why: 'x', host: 'none', stars: 0, pushed: '2026-10-23', tags: [] },
-  t: injected.t,
-  onOpen: () => {},
-  onBack: () => {},
-}))
-const sparseValues = byClass(sparseDetail, 'redaiMetricValue').map((node) => node.props.children)
-assert.equal(sparseValues[1], i18n.locales.zh['plugin.unknown'])
-assert.equal(sparseValues[4], i18n.locales.zh['plugin.noLicense'])
-
-// ── one missing field at a time: no fake zero, no raw dictionary key ────────
-// Regression guards for the "a missing value must not read as 0 ★ / 更新于 undefined
-// / plugin.host.undefined" fix. Each case removes exactly one field from a real row.
-const cardFor = (plugin) => flatten(PluginCard({ plugin, t: injected.t, onOpen: () => {} }))
-const withoutField = (plugin, field) => {
-  const copy = { ...plugin }
-  delete copy[field]
-  return copy
-}
-const starsText = (plugin) => byClass(cardFor(plugin), 'redaiStars')[0].props.children
-const metaChildren = (plugin, t) => {
-  const meta = byClass(cardFor(plugin), 'redaiPluginMeta')[0]
-  return [].concat(meta.props.children).filter((node) => node !== null && node !== undefined && node !== false)
-}
-const statusChildren = (t) => {
-  const bar = byClass(flatten(PluginDetail({ plugin: t, t: injected.t, onOpen: () => {}, onBack: () => {} })), 'redaiStatusBar')[0]
-  return [].concat(bar.props.children).filter((node) => node !== null && node !== undefined && node !== false)
-}
-const childText = (node) => (typeof node.props.children === 'string' ? node.props.children : JSON.stringify(node.props.children))
-
-// a real zero keeps its star suffix; a missing count does not
-assert.equal(starsText({ ...detailSample, stars: 0 }), '0 ★', 'a real zero still reads 0 ★')
-assert.equal(starsText(withoutField(detailSample, 'stars')), i18n.locales.zh['plugin.unknown'],
-  'a missing star count reads 未知, not 0 ★')
-assert.equal(starsText({ ...detailSample, stars: null }), i18n.locales.zh['plugin.unknown'])
-assert.ok(!starsText(withoutField(detailSample, 'stars')).includes('★'), 'the unknown star count carries no ★ suffix')
-
-// a missing or unrecognised host falls back to the "not checked" badge
-for (const host of [undefined, 'weird']) {
-  const hostBadge = metaChildren({ ...detailSample, host }, injected.t)
-    .find((node) => /redaiBadge/.test(String(node.props.className)) && !/active|archived|stale/.test(String(node.props.className)))
-  assert.equal(hostBadge.props.className, 'redaiBadge unknown', `host ${host} must fall back to the unknown badge`)
-  assert.equal(hostBadge.props.children, i18n.locales.zh['plugin.host.unknown'])
-}
-
-// a missing commit date drops the date badge entirely, leaving no placeholder
-const noPushedMeta = metaChildren(withoutField(detailSample, 'pushed'), injected.t)
-assert.equal(noPushedMeta.length, 2, 'maintained + host only, no empty date slot')
-assert.ok(noPushedMeta.every((node) => childText(node).length > 0), 'no empty text node is left behind')
-assert.ok(!noPushedMeta.some((node) => childText(node).includes('更新于')), 'no 更新于 badge without a date')
-const noPushedStatus = statusChildren(withoutField(detailSample, 'pushed'))
-assert.equal(noPushedStatus.length, 2, 'the status bar keeps the badge and the release only')
-assert.ok(noPushedStatus.every((node) => childText(node).length > 0))
-assert.equal(childText(noPushedStatus[1]),
-  i18n.locales.zh['plugin.metrics.release'] + ' · ' + detailSample.release.tag + ' · ' + detailSample.release.at)
-
-// dictionary hygiene: the dead rank key stays gone, metric labels stay one language
-for (const locale of ['zh', 'en']) {
-  assert.ok(!('plugin.rank' in i18n.locales[locale]), `plugin.rank must not come back (${locale})`)
-}
-const metricLabels = (t) => byClass(flatten(PluginDetail({
-  plugin: detailSample, t, onOpen: () => {}, onBack: () => {},
-})), 'redaiMetricLabel').map((node) => node.props.children)
-const cjk = /[\u4e00-\u9fff]/
-assert.ok(metricLabels(injected.t).every((label) => cjk.test(label)), 'the zh metric labels must not mix in English')
-assert.ok(metricLabels((key) => i18n.locales.en[key]).every((label) => !cjk.test(label)), 'the en metric labels stay English')
-
-// ── plugin detail: the nine blocks in their designed order ──────────────────
-const detailRoot = PluginDetail({
-  plugin: detailSample,
-  t: injected.t,
-  onOpen: () => {},
-  onBack: () => {},
-})
-assert.equal(detailRoot.props.className, 'redaiDetail')
-assert.deepEqual(detailRoot.props.children.map((node) => String(node.props.className)), [
-  'redaiGhost',        // back to the list
-  'redaiDetailTop',    // identity
-  'redaiMetrics',      // numbers
-  'redaiStatusBar',    // freshness
-  'redaiSection',      // why
-  'redaiSection',      // highlights
-  'redaiSection',      // caveats
-  'redaiSection',      // install
-  'redaiDetailBar',    // actions
-], 'the detail page must keep its nine blocks in the designed order')
-assert.deepEqual(
-  detailRoot.props.children.filter((node) => node.props.className === 'redaiSection')
-    .map((node) => node.props.children[0].props.children),
-  [
-    i18n.locales.zh['plugin.why'],
-    i18n.locales.zh['plugin.highlights'],
-    i18n.locales.zh['plugin.caveats'],
-    i18n.locales.zh['plugin.install'],
-  ],
-  'the prose blocks read why → highlights → caveats → install',
-)
-assert.equal(detailRoot.props.children[0].props.children, '← ' + i18n.locales.zh['detail.back'],
-  'the first block is the back control')
-assert.ok(String(detailRoot.props.children[8].props.children[0].props.className).includes('redaiPrimary'),
-  'the actions block leads with the primary button')
-
-// ── the archived entry: last rank, no homepage, explicit "no release" ───────
-const archivedRow = ordered.find((row) => row.id === 'dsh-navbar')
-assert.ok(archivedRow, 'the demo ranking keeps the archived dsh-navbar')
-assert.equal(archivedRow.rank, plugins.plugins.length, 'an archived entry must hold the last rank, not a gap in the middle')
-assert.equal(archivedRow.maintained, 'archived')
-assert.equal(archivedRow.homepage, null, 'dsh-navbar declares no homepage — the case the UI has to survive')
-assert.equal(archivedRow.release, null, 'dsh-navbar publishes no release — the case the UI has to survive')
-const archivedDetail = flatten(PluginDetail({
-  plugin: archivedRow,
-  t: injected.t,
-  onOpen: () => {},
-  onBack: () => {},
-}))
-assert.equal(homepageButtons(archivedDetail).length, 0, 'no homepage button without a homepage')
-assert.ok(String(byClass(archivedDetail, 'redaiStatusText')[1].props.children)
-  .includes(i18n.locales.zh['plugin.noRelease']), 'no release must say so instead of going blank')
-assert.equal(byClass(archivedDetail, 'redaiBadge archived').length, 1, 'the archived badge renders once in the head')
-
-// ── no undefined / NaN leaks anywhere in the real ranking ──────────────────
+/** Every string a rendered node tree prints, in order. */
 const collectText = (node, out = []) => {
   if (node === null || node === undefined || node === false) return out
   if (Array.isArray(node)) { node.forEach((child) => collectText(child, out)); return out }
@@ -594,14 +308,457 @@ const collectText = (node, out = []) => {
   }
   return out
 }
-for (const row of ordered) {
-  const texts = collectText(flatten(PluginCard({ plugin: row, t: injected.t, onOpen: () => {} })))
-    .concat(collectText(flatten(PluginDetail({ plugin: row, t: injected.t, onOpen: () => {}, onBack: () => {} }))))
-  assert.equal(texts.filter((text) => /undefined|NaN|\[object /.test(text)).length, 0,
-    `${row.id} must not print undefined/NaN in the UI`)
+assert.equal(ranking.version, 2, 'the ranking is schema v2')
+assert.ok(!('plugins' in ranking), 'the v1 cards array must not come back')
+assert.equal(ranking.updatedAt && /^\d{4}-\d{2}-\d{2}$/.test(ranking.updatedAt), true, 'the ranking needs an update date')
+assert.equal(ranking.source.list, 'https://github.com/beancookie/awesome-dsh-plugin', 'the source list is fixed')
+assert.ok(ranking.source.method.length > 8, 'a ranking without a method loses trust')
+assert.ok(ranking.source.rateLimit.length > 4, 'the refresh cadence needs its rate limit spelled out')
+
+const CATEGORY_IDS = ['ui', 'session', 'memory', 'tools', 'skills', 'workflow', 'notify', 'model', 'runtime', 'theme', 'fun']
+const TOPIC_TAGS = ['dsh-plugin', 'deepseek-harness']
+assert.deepEqual(ranking.categories.map((row) => row.id), CATEGORY_IDS, 'eleven categories, in the agreed order')
+assert.deepEqual(ranking.categories.filter((row) => row.hidden === true).map((row) => row.id), ['theme', 'fun'],
+  'theme and fun are folded by default')
+
+for (const category of ranking.categories) {
+  assert.ok(category.name && category.nameEn, `${category.id} needs both names`)
+  assert.match(category.anchor, /^#[^\s]+$/, `${category.id} needs the source list's own anchor`)
+  // D2: `total` counts what the category actually contributes (live repos, after
+  // dead links and duplicate forks), `listed` keeps the raw list size for audit.
+  assert.ok(Number.isInteger(category.total) && category.total > 0, `${category.id} needs a live count`)
+  assert.ok(Number.isInteger(category.listed) && category.listed > 0, `${category.id} needs its size in the source list`)
+  assert.ok(category.total <= category.listed, `${category.id}: live count cannot exceed the listed count`)
+  assert.ok(Number.isInteger(category.tagged) && category.tagged >= 0, `${category.id} needs a declared count`)
+  assert.ok(category.tagged <= category.total, `${category.id}: declared cannot exceed the live count`)
+  // §4.3 — never more than ten rows, ranks from 1 with no gap
+  assert.ok(category.items.length > 0 && category.items.length <= 10, `${category.id} holds 1..10 rows`)
+  assert.ok(category.items.length <= category.total, `${category.id} ranks more rows than the list has`)
+  assert.deepEqual(category.items.map((row) => row.rank), category.items.map((_, index) => index + 1),
+    `${category.id} ranks run 1..${category.items.length} with no gap`)
+
+  const seen = new Set()
+  for (const item of category.items) {
+    assert.match(item.full, /^[\w.-]+\/[\w.-]+$/, `${category.id} row ${item.rank} needs owner/name`)
+    assert.ok(!seen.has(item.full), `${category.id} lists ${item.full} twice`)
+    seen.add(item.full)
+    assert.ok(item.repo.toLowerCase().indexOf(item.full.toLowerCase()) > -1, `${item.full}: repo link must point at it`)
+    assert.ok(item.title.length > 0 && item.desc.length > 3, `${item.full} needs a name and a blurb`)
+    assert.ok(Number.isInteger(item.stars) && item.stars >= 0, `${item.full} stars must be numeric`)
+    assert.ok(Number.isInteger(item.forks) && item.forks >= 0, `${item.full} forks must be numeric`)
+    assert.match(item.pushed, /^\d{4}-\d{2}-\d{2}$/, `${item.full} needs a last-commit date`)
+    assert.ok(item.created === null || /^\d{4}-\d{2}-\d{2}$/.test(item.created), `${item.full} created must be a date or null`)
+    assert.equal(typeof item.archived, 'boolean', `${item.full} archived must be boolean`)
+    assert.equal(typeof item.tagged, 'boolean', `${item.full} tagged must be boolean`)
+    assert.ok(item.language === null || typeof item.language === 'string', `${item.full} language must be a string or null`)
+    assert.ok(item.license === null || typeof item.license === 'string', `${item.full} license must be a string or null`)
+    assert.ok(item.homepage === null || /^https?:\/\//.test(item.homepage), `${item.full} homepage must be a URL or null`)
+    assert.ok(Array.isArray(item.topics) && item.topics.length <= 4, `${item.full} keeps at most 4 topics`)
+    assert.equal(item.tagged, item.topics.some((tag) => TOPIC_TAGS.indexOf(tag) > -1),
+      `${item.full}: tagged must agree with its topics`)
+
+  }
+  checkOrder(category.items, category.id)
 }
 
-// ── search: category, highlights and tags are all searchable ───────────────
+// §4.3, pairwise: archived last, then declared first, then stars non-increasing.
+// Written as a function because today's data makes two of these branches
+// unreachable — every category has ten live, declared repositories in front, so
+// no undeclared or archived row makes a top ten and the branches would never
+// execute. The probe fixture below runs them on every test run.
+function checkOrder(items, label) {
+  for (const [at, item] of items.entries()) {
+    if (at === 0) continue
+    const before = items[at - 1]
+    if (before.archived !== item.archived) {
+      assert.equal(before.archived, false, `${label}: an archived row must sit below every live row`)
+      continue
+    }
+    if (before.tagged === false) {
+      assert.equal(item.tagged, false, `${label}: a declared row (${item.full}) ranks below an undeclared one`)
+    }
+    if (before.tagged === item.tagged) {
+      assert.ok(before.stars >= item.stars, `${label}: stars must not rise at rank ${item.rank}`)
+    }
+  }
+  // §4.3 — archived rows form an unbroken tail once one appears
+  const archivedAt = items.findIndex((row) => row.archived === true)
+  if (archivedAt > -1) {
+    assert.ok(items.slice(archivedAt).every((row) => row.archived === true),
+      `${label}: archived rows must form an unbroken tail`)
+  }
+}
+
+// A four-branch probe: declared, undeclared, two archived. Fed straight to the
+// same checker, so the three archived/undeclared assertions really run.
+const probeRow = (over) => ({
+  rank: 0, full: 'probe/row', title: 'probe', desc: 'probe row', stars: 1, forks: 0,
+  pushed: '2026-10-01', created: null, archived: false, tagged: false,
+  language: null, license: null, homepage: null, topics: [], ...over,
+})
+checkOrder([
+  probeRow({ rank: 1, full: 'probe/declared', stars: 10, tagged: true }),
+  probeRow({ rank: 2, full: 'probe/undeclared', stars: 999 }),
+  probeRow({ rank: 3, full: 'probe/undeclared-2', stars: 500 }),
+  probeRow({ rank: 4, full: 'probe/archived', stars: 5000, tagged: true, archived: true }),
+  probeRow({ rank: 5, full: 'probe/archived-2', stars: 5, archived: true }),
+], 'probe')
+
+const rows = ranking.categories.flatMap((category) => category.items.map((item) => ({ category, item })))
+assert.ok(rows.length >= 50, `the board should carry a real ranking, got ${rows.length} rows`)
+assert.ok(rows.some((row) => row.item.tagged), 'the data keeps at least one declared plugin')
+// Every category currently has ten declared, live repositories, so the two
+// tie-breakers (archived last, undeclared after declared) do not show up in the
+// top ten at all. They are asserted pairwise above and pinned against a
+// synthetic row below — asserting their *presence* here would be asserting the
+// source list's shape, not our behaviour.
+// Archived/undeclared ordering is covered by checkOrder above (real rows) and by
+// the probe fixture (the branches real data cannot reach).
+
+// the warnings file is the human half of the pipeline: dead links and forks
+const rankingWarnings = JSON.parse(readFileSync(join(root, 'data/ranking-warnings.json'), 'utf8'))
+assert.equal(rankingWarnings.version, 2)
+assert.ok(Array.isArray(rankingWarnings.dead) && Array.isArray(rankingWarnings.forks))
+assert.ok(Array.isArray(rankingWarnings.renamed), 'renamed repositories are reported apart from dead ones')
+for (const rename of rankingWarnings.renamed) {
+  assert.match(rename.from, /^[\w.-]+\/[\w.-]+$/, 'a rename records the old slug')
+  assert.match(rename.to, /^[\w.-]+\/[\w.-]+$/, 'a rename records the new slug')
+  assert.ok(Number.isInteger(rename.stars) && rename.stars >= 0, 'a rename records the star count it was ranked with')
+  assert.ok(!rows.some((row) => row.item.full === rename.from),
+    `a renamed repository must be ranked under its current name: ${rename.from}`)
+}
+for (const rename of rankingWarnings.renamed) {
+  assert.ok(rows.some((row) => row.item.full === rename.to) || rename.stars < 200,
+    `a renamed repository with real traction must reach the board: ${rename.to}`)
+}
+for (const dead of rankingWarnings.dead) {
+  assert.ok(!rows.some((row) => row.item.full === dead), `a dead link must never reach the board: ${dead}`)
+}
+for (const fork of rankingWarnings.forks) {
+  assert.ok(!rows.some((row) => row.item.full === fork.dropped && row.item.title === fork.name),
+    `a dropped fork must not be ranked: ${fork.dropped}`)
+}
+
+// ── the board replaced the twelve equal cards ───────────────────────────────
+assert.ok(clientSource.indexOf('.redaiRankSection{') > -1, 'the board is cut into category sections')
+assert.ok(clientSource.indexOf('.redaiRankTop{') > -1, 'first place gets its own standing card')
+assert.ok(clientSource.indexOf('.redaiRankRow{') > -1, 'places 2–10 are compact rows')
+assert.ok(clientSource.indexOf('redaiPluginCard') < 0, 'the twelve equal cards are gone')
+assert.ok(clientSource.indexOf('redaiPluginList') < 0, 'the auto-fill card grid is gone')
+assert.ok(clientSource.indexOf('redaiPluginMeta') < 0, 'the v1 card meta row is gone')
+// §3.2 — 01 and 10 have to line up, or the ordinal column twitches on refresh
+assert.match(clientSource, /\.redaiRankTopNum\{[^}]*font-variant-numeric:tabular-nums/,
+  'the standing ordinal uses tabular figures')
+assert.match(clientSource, /\.redaiRankRowNum\{[^}]*font-variant-numeric:tabular-nums/,
+  'the row ordinals use tabular figures')
+assert.match(clientSource, /\.redaiRankTop\{[^}]*min-height:76px/, 'the standing card is ~76px tall')
+assert.match(clientSource, /\.redaiRankRow\{[^}]*height:44px/, 'the rows are 44px tall')
+// only the first place is coloured; the rest stay grey
+assert.match(clientSource, /\.redaiRankTopNum\{[^}]*color:var\(--dsw-alias-brand-primary\)/,
+  'rank 1 is the only brand-coloured ordinal')
+assert.match(clientSource, /\.redaiRankRowNum\{[^}]*color:light-dark\(#61666b,var\(--dsw-alias-label-tertiary\)\)/,
+  'ranks 2–10 stay grey (paired so the light theme still clears 4.5)')
+// §3.2 — a separator between rows, none after the last one
+assert.match(clientSource, /\.redaiRankRow\{[^}]*border-top:\.5px solid/, 'rows are separated by a hairline')
+assert.match(clientSource, /\.redaiRankRow:first-child\{border-top:0\}/, 'the first row has no hairline above it')
+// D5 — the small grey labels must carry a light/dark pair: `label-tertiary` alone
+// measures 3.71:1 on white, under the 4.5 bar for 11–13px text.
+for (const selector of ['.redaiRankRowNum', '.redaiRankRowMeta', '.redaiRankSectionCount',
+  '.redaiRankBasis', '.redaiRankTopMeta']) {
+  const at = clientSource.indexOf(selector + '{')
+  assert.ok(at > -1, `missing rule: ${selector}`)
+  const body = clientSource.slice(at, clientSource.indexOf('}', at))
+  assert.match(body, /color:light-dark\(#61666b,var\(--dsw-alias-label-tertiary\)\)/,
+    `${selector} must pair a darker light value with the host's tertiary grey`)
+}
+// D6 — a chip and a tab are controls: the UA outline is 1.04:1 on the dark page.
+assert.ok(clientSource.indexOf('.redaiFilterChip:focus-visible{outline:2px solid var(--dsw-alias-brand-primary)') > -1,
+  'the category chips need a visible focus ring')
+assert.ok(clientSource.indexOf('.redaiTab:focus-visible{outline:2px solid var(--dsw-alias-brand-primary)') > -1,
+  'the tabs need a visible focus ring')
+
+// ── the helpers the board is built from ────────────────────────────────────
+const {
+  RankTop, RankRow, RankSection, PluginDetail: PluginDetailView,
+  formatStars, rankLabel, shortDate, categoryName, categoriesShown, rankingCount,
+  itemsMatching, findPlugin, sortBasis, installCommand, whyHere,
+} = exported.__components
+assert.equal(formatStars(2429), '2.4k')
+assert.equal(formatStars(17), '17')
+assert.equal(formatStars(12000), '12k')
+assert.equal(rankLabel(1), '01', 'rank 1 prints as 01')
+assert.equal(rankLabel(10), '10')
+assert.equal(rankLabel(undefined), '—')
+assert.equal(shortDate('2026-10-21'), '10-21')
+assert.equal(shortDate('nonsense'), '')
+
+const firstCategory = ranking.categories[0]
+const topRow = rows[0]
+assert.equal(topRow.item.rank, 1)
+assert.equal(categoryName(injected.t, firstCategory, false), dict['plugin.category.' + firstCategory.id],
+  'the category name comes from the dictionary')
+assert.equal(categoryName(null, firstCategory, true), firstCategory.nameEn, 'the data name is the fallback')
+assert.equal(categoriesShown(ranking, false).length, 9, 'nine formal categories by default')
+assert.equal(categoriesShown(ranking, true).length, 11, 'all eleven once 更多 is open')
+assert.ok(categoriesShown(ranking, false).every((row) => row.hidden !== true))
+assert.equal(rankingCount(ranking), rows.length, 'the tab counter counts every ranked row')
+assert.equal(sortBasis(injected.t, ranking.updatedAt), dict['plugin.sortBasis'].replace('{date}', ranking.updatedAt))
+assert.equal(installCommand(topRow.item), 'dsh plugin --profile desktop add github:' + topRow.item.full)
+assert.deepEqual(findPlugin(ranking, topRow.item.full), { category: firstCategory, item: topRow.item })
+assert.equal(findPlugin(ranking, 'nobody/nothing'), null)
+
+// search: a category name keeps the whole section, a row match narrows it
+assert.equal(itemsMatching(firstCategory, '', false).length, firstCategory.items.length)
+assert.equal(itemsMatching(firstCategory, firstCategory.name, false).length, firstCategory.items.length,
+  'searching the category name keeps every row')
+const needleRow = firstCategory.items[firstCategory.items.length - 1]
+const narrowed = itemsMatching(firstCategory, needleRow.title.toLowerCase(), false)
+assert.ok(narrowed.length >= 1 && narrowed.length <= firstCategory.items.length)
+assert.ok(narrowed.indexOf(needleRow) > -1, 'the row that matched is still there')
+
+// ── rank 1 versus ranks 2–10 ───────────────────────────────────────────────
+const topNodes = flatten(RankTop({ item: topRow.item, t: injected.t, onSelect: () => {} }))
+assert.match(String(topNodes[0].props.className), /redaiRankTop/, 'first place is the standing card')
+assert.equal(byClass(topNodes, 'redaiRankTopNum')[0].props.children, '01', 'the standing card carries 01')
+assert.equal(byClass(topNodes, 'redaiRankTopTitle')[0].props.children, topRow.item.title)
+assert.equal(byClass(topNodes, 'redaiRankTopDesc')[0].props.children, topRow.item.desc)
+const topMeta = String(byClass(topNodes, 'redaiRankTopMeta')[0].props.children)
+assert.ok(topMeta.indexOf(formatStars(topRow.item.stars) + ' ★') > -1, 'the standing card prints its stars')
+assert.equal(topMeta, formatStars(topRow.item.stars) + ' ★ · ' + shortDate(topRow.item.pushed),
+  'the standing card prints stars and a short date — same shape as a row, no sentence')
+assert.equal(topMeta.indexOf(dict['plugin.tagged']), -1,
+  'the declared state is a badge next to the name, not a second mention in the meta')
+
+const rowItem = firstCategory.items[1]
+const rowNodes = flatten(RankRow({ item: rowItem, t: injected.t, onSelect: () => {} }))
+assert.match(String(rowNodes[0].props.className), /redaiRankRow/, 'places 2–10 are rows')
+assert.equal(byClass(rowNodes, 'redaiRankRowNum')[0].props.children, rankLabel(rowItem.rank))
+assert.equal(byClass(rowNodes, 'redaiRankRowNum')[0].props.children, '02')
+assert.equal(byClass(rowNodes, 'redaiRankRowTitle')[0].props.children, rowItem.title)
+assert.ok(collectText(byClass(rowNodes, 'redaiRankRowMeta')[0]).join('').indexOf('★') > -1,
+  'a row prints its stars')
+assert.ok(collectText(byClass(rowNodes, 'redaiRankRowDate')[0]).join('').indexOf(shortDate(rowItem.pushed)) > -1,
+  'a row prints the last commit as MM-DD')
+
+// clicking a rank opens the detail page, never the repository behind it
+const selectedRanks = []
+flatten(RankTop({ item: topRow.item, t: injected.t, onSelect: (item) => selectedRanks.push(item.full) }))[0].props.onClick()
+assert.deepEqual(selectedRanks, [topRow.item.full], 'a rank click selects the row for the detail page')
+
+// one section: heading, standing card, rows, then the door to the full list
+const listOpened = []
+const sectionNodes = flatten(RankSection({
+  category: firstCategory,
+  items: firstCategory.items,
+  t: injected.t,
+  english: false,
+  onSelect: () => {},
+  onOpen: (url) => listOpened.push(url),
+  listUrl: ranking.source.list,
+}))
+assert.equal(byClass(sectionNodes, 'redaiRankSection').length, 1)
+assert.equal(byClass(sectionNodes, 'redaiRankTop').length, 1, 'exactly one standing card per category')
+assert.equal(byClass(sectionNodes, 'redaiRankRow').length, firstCategory.items.length - 1,
+  'every other ranked row is a compact row')
+assert.equal(byClass(sectionNodes, 'redaiRankSectionTitle')[0].props.children,
+  dict['plugin.category.' + firstCategory.id])
+// D4: one place says both numbers, and it says them as "on the board / carried".
+assert.equal(byClass(sectionNodes, 'redaiRankSectionCount')[0].props.children,
+  dict['plugin.boardCounts'].replace('{n}', firstCategory.items.length).replace('{total}', firstCategory.total))
+assert.equal(byClass(sectionNodes, 'redaiRankFootText').length, 0,
+  'the footer must not repeat the count a second time')
+const seeAll = byClass(sectionNodes, 'redaiRankMore')[0]
+assert.equal(seeAll.props.children, dict['plugin.seeAll'] + ' →')
+assert.equal(seeAll.props.title, ranking.source.list + firstCategory.anchor,
+  '查看全部 points at this category in the source list')
+seeAll.props.onClick()
+assert.deepEqual(listOpened, [ranking.source.list + firstCategory.anchor])
+
+// ── plugin detail: the six blocks of a data-only page ──────────────────────
+// v2 has no why / highlights / caveats, so the page must not keep three empty
+// sections; the prose it does keep is derived from the row itself.
+const detailPick = rows.find((row) => row.item.homepage) || rows[0]
+const detailSample = detailPick.item
+const detailCategory = detailPick.category
+const pluginDetailNodes = flatten(PluginDetailView({
+  plugin: detailSample,
+  category: detailCategory,
+  t: injected.t,
+  english: false,
+  onOpen: () => {},
+  onBack: () => {},
+}))
+assert.ok(String(byClass(pluginDetailNodes, 'redaiInstall')[0].props.children).indexOf(installCommand(detailSample)) > -1,
+  'the install command names the repository being ranked')
+assert.equal(byClass(pluginDetailNodes, 'redaiMetrics').length, 1, 'the metric strip renders once')
+assert.equal(byClass(pluginDetailNodes, 'redaiMetric').length, 5, 'stars / forks / language / license / created')
+assert.equal(byClass(pluginDetailNodes, 'redaiSection').length, 2, 'why it is here + install, nothing else')
+assert.equal(byClass(pluginDetailNodes, 'redaiHighlight').length, 0, 'no v1 highlights block is left behind')
+assert.equal(byClass(pluginDetailNodes, 'redaiCaveat').length, 0, 'no v1 caveats block is left behind')
+assert.equal(byClass(pluginDetailNodes, 'redaiStatusBar').length, 0, 'the v1 maintenance strip is gone')
+assert.equal(byClass(pluginDetailNodes, 'redaiPluginNote').length, 0, 'the v1 note line is gone')
+
+const metricValues = byClass(pluginDetailNodes, 'redaiMetricValue').map((node) => node.props.children)
+assert.deepEqual(metricValues, [
+  formatStars(detailSample.stars),
+  formatStars(detailSample.forks),
+  detailSample.language || dict['plugin.unknown'],
+  detailSample.license || dict['plugin.noLicense'],
+  detailSample.created || dict['plugin.unknown'],
+], 'the metric strip reads the row, with 未知 where the row has nothing')
+
+// the prose is derived, never invented
+const whyText = byClass(pluginDetailNodes, 'redaiP')[0].props.children
+assert.equal(whyText, whyHere(detailSample, detailCategory, injected.t, false),
+  'why-it-is-here is a pure function of the row')
+assert.ok(whyText.indexOf(String(detailSample.rank)) > -1, 'it names the rank')
+assert.ok(whyText.indexOf(formatStars(detailSample.stars)) > -1, 'it names the stars')
+assert.ok(whyText.indexOf(detailSample.archived ? dict['plugin.whyHereArchived'] : dict['plugin.whyHereLive']) > -1,
+  'it says whether the repository is archived')
+
+// badges: category + declared/undeclared (+ archived when it is archived)
+assert.equal(byClass(pluginDetailNodes, 'redaiBadge cat')[0].props.children,
+  dict['plugin.category.' + detailCategory.id])
+const declaredBadge = pluginDetailNodes
+  .find((node) => node.props && /^redaiBadge (tagged|untagged)$/.test(String(node.props.className)))
+assert.ok(declaredBadge, 'the detail head states the topic status')
+assert.equal(declaredBadge.props.children, detailSample.tagged ? dict['plugin.tagged'] : dict['plugin.untagged'])
+
+const homepageButtons = (nodes) => nodes.filter((node) => node.props && node.props.children === dict['plugin.homepage'])
+assert.equal(homepageButtons(pluginDetailNodes).length, 1,
+  'the homepage button renders only when the repository declares one')
+
+const indexOfClass = (nodes, className) => nodes.findIndex((node) => String(node.props.className || '').split(' ')[0] === className)
+const headAt = indexOfClass(pluginDetailNodes, 'redaiDetailTitle')
+const metricsAt = indexOfClass(pluginDetailNodes, 'redaiMetrics')
+const sectionAt = indexOfClass(pluginDetailNodes, 'redaiSection')
+const installAt = indexOfClass(pluginDetailNodes, 'redaiInstall')
+assert.ok(headAt > -1 && headAt < metricsAt, 'identity comes before the metric strip')
+assert.ok(metricsAt < sectionAt, 'the numbers come before the prose')
+assert.ok(sectionAt < installAt, 'the install command closes the content')
+
+const detailRoot = PluginDetailView({
+  plugin: detailSample,
+  category: detailCategory,
+  t: injected.t,
+  english: false,
+  onOpen: () => {},
+  onBack: () => {},
+})
+assert.equal(detailRoot.props.className, 'redaiDetail')
+assert.deepEqual(detailRoot.props.children.map((node) => String(node.props.className).split(' ')[0]), [
+  'redaiGhost',       // back to the board
+  'redaiDetailTop',   // identity
+  'redaiMetrics',     // numbers
+  'redaiSection',     // why it is here
+  'redaiSection',     // install
+  'redaiDetailBar',   // actions
+], 'the detail page keeps its six blocks in the designed order')
+assert.equal(detailRoot.props.children[0].props.children, '← ' + dict['detail.back'],
+  'the first block is the back control')
+assert.ok(String(detailRoot.props.children[5].props.children[0].props.className).indexOf('redaiPrimary') > -1,
+  'the actions block leads with the primary button')
+
+// an archived row is a normal detail page: badge, explicit state, no dimming.
+// Built from a real row so the shape is honest, then flipped to archived — the
+// generated ranking has no archived row in any top ten right now.
+const archivedItem = { ...detailSample, rank: 9, archived: true, homepage: null, tagged: false }
+const archivedDetailNodes = flatten(PluginDetailView({
+  plugin: archivedItem,
+  category: detailCategory,
+  t: injected.t,
+  english: false,
+  onOpen: () => {},
+  onBack: () => {},
+}))
+assert.equal(byClass(archivedDetailNodes, 'redaiBadge archived').length, 1,
+  'an archived row carries the archived badge exactly once')
+assert.equal(byClass(archivedDetailNodes, 'redaiBadge untagged').length, 1,
+  'an undeclared repository says 未标注 instead of printing nothing')
+assert.equal(homepageButtons(archivedDetailNodes).length, 0, 'no homepage button without a homepage')
+assert.ok(String(byClass(archivedDetailNodes, 'redaiP')[0].props.children)
+  .indexOf(dict['plugin.whyHereArchived']) > -1, 'the derived sentence states the archived fact')
+// the compact row states it too, in text, instead of fading the row
+const archivedRowNodes = flatten(RankRow({ item: archivedItem, t: injected.t, onSelect: () => {} }))
+assert.equal(byClass(archivedRowNodes, 'redaiRankRowNote')[0].props.children, dict['plugin.archived'],
+  'an archived row labels itself in the row, not by dimming')
+assert.equal(byClass(flatten(RankRow({ item: detailSample, t: injected.t, onSelect: () => {} })), 'redaiRankRowNote').length,
+  detailSample.archived ? 1 : 0, 'a live row carries no archived label')
+
+// ── one missing field at a time: no fake zero, no raw dictionary key ───────
+const sparseNodes = flatten(PluginDetailView({
+  plugin: {
+    rank: 7,
+    full: 'nobody/nothing',
+    title: 'nothing',
+    repo: 'https://github.com/nobody/nothing',
+    desc: 'a row with every optional field missing',
+    stars: undefined,
+    forks: undefined,
+    pushed: null,
+    created: null,
+    archived: false,
+    tagged: false,
+    language: null,
+    license: null,
+    homepage: null,
+    topics: [],
+  },
+  category: firstCategory,
+  t: injected.t,
+  english: false,
+  onOpen: () => {},
+  onBack: () => {},
+}))
+assert.deepEqual(byClass(sparseNodes, 'redaiMetricValue').map((node) => node.props.children), [
+  dict['plugin.unknown'],
+  dict['plugin.unknown'],
+  dict['plugin.unknown'],
+  dict['plugin.noLicense'],
+  dict['plugin.unknown'],
+], 'a missing number reads 未知, never 0')
+assert.equal(byClass(sparseNodes, 'redaiInstall')[0].props.children,
+  'dsh plugin --profile desktop add github:nobody/nothing', 'the install command survives missing fields')
+assert.equal(homepageButtons(sparseNodes).length, 0, 'no homepage button without a homepage')
+assert.deepEqual(byClass(sparseNodes, 'redaiBadge untagged').map((node) => node.props.children), [dict['plugin.untagged']],
+  'an undeclared repository says so instead of printing an empty badge')
+
+// ── dictionary hygiene: the v1 plugin keys left with the v1 data ───────────
+for (const locale of Object.keys(i18n.locales)) {
+  const table = i18n.locales[locale]
+  assert.ok(!('plugin.rank' in table), `plugin.rank must not come back (${locale})`)
+  for (const dead of ['plugin.host.none', 'plugin.host.yes', 'plugin.host.unknown',
+    'plugin.maintained.active', 'plugin.maintained.stale', 'plugin.maintained.archived',
+    'plugin.why', 'plugin.highlights', 'plugin.caveats', 'plugin.filter.all', 'plugin.filter.count']) {
+    assert.ok(!(dead in table), `the v1 key ${dead} must be gone (${locale})`)
+  }
+  for (const id of CATEGORY_IDS) assert.ok(('plugin.category.' + id) in table, `missing category name: ${id} (${locale})`)
+  for (const key of ['plugin.filterAll', 'plugin.more', 'plugin.less', 'plugin.sortBasis', 'plugin.boardCounts',
+    'plugin.seeAll', 'plugin.tagged', 'plugin.untagged', 'plugin.archived', 'plugin.whyHere', 'plugin.whyHereRank',
+    'plugin.metrics.forks', 'plugin.thirdPartyHint', 'plugin.emptyCategory']) {
+    assert.ok(key in table, `missing dictionary key: ${key} (${locale})`)
+  }
+}
+const cjk = /[\u4e00-\u9fff]/
+const metricLabels = (t) => byClass(flatten(PluginDetailView({
+  plugin: detailSample, category: detailCategory, t, english: false, onOpen: () => {}, onBack: () => {},
+})), 'redaiMetricLabel').map((node) => node.props.children)
+assert.ok(metricLabels(injected.t).every((label) => cjk.test(label)), 'the zh metric labels must not mix in English')
+assert.ok(metricLabels((key) => i18n.locales.en[key]).every((label) => !cjk.test(label)), 'the en metric labels stay English')
+
+// ── no undefined / NaN leaks anywhere in the real ranking ─────────────────
+for (const row of rows) {
+  const texts = collectText(flatten(RankTop({ item: row.item, t: injected.t, onSelect: () => {} })))
+    .concat(collectText(flatten(RankRow({ item: row.item, t: injected.t, onSelect: () => {} }))))
+    .concat(collectText(flatten(PluginDetailView({
+      plugin: row.item, category: row.category, t: injected.t, english: false,
+      onOpen: () => {}, onBack: () => {},
+    }))))
+  assert.equal(texts.filter((text) => /undefined|NaN|\[object /.test(text)).length, 0,
+    `${row.item.full} must not print undefined/NaN in the UI`)
+}
+
+// ── search: narrows the board and never renumbers it ──────────────────────
 // A second bundle instance whose React stub can pin the query/tab state, so the
 // filtering the page does on its own state can be asserted end to end.
 const loadBundle = (useStateImpl) => {
@@ -648,28 +805,50 @@ const renderPluginsWithQuery = (query) => {
   })
   return flatten(page2({ t: (key) => dict2[i18n.defaultLocale][key], onOpen: () => {} }))
 }
-const rankingHaystack = (row) => [row.title, row.desc, row.why, row.category, ...(row.highlights || []), ...(row.tags || [])]
-  .join(' ').toLowerCase()
-for (const query of ['代码', '记忆', '协作', 'dsh-navbar']) {
-  const nodes = renderPluginsWithQuery(query)
-  const shown = nodes.filter((node) => node.props && String(node.props.className || '').split(' ')[0] === 'redaiPluginCard')
-  const expected = ordered.filter((row) => rankingHaystack(row).includes(query.toLowerCase()))
-  assert.equal(shown.length, expected.length, `searching "${query}" must show every plugin whose category, highlights or tags match`)
-  assert.ok(expected.length > 0, `"${query}" is expected to match at least one plugin`)
-  assert.equal(byClass(nodes, 'redaiNavCount')[0].props.children,
-    i18n.locales.zh['plugin.count'].replace('{n}', expected.length),
-    'the count label follows the filtered ranking')
-  assert.equal(byClass(nodes, 'redaiNavEmpty').length, 0)
-}
-const archivedHit = renderPluginsWithQuery('dsh-navbar')
-const archivedRank = byClass(archivedHit, 'redaiRank').map((node) => node.props.children)
-assert.deepEqual(archivedRank, [String(archivedRow.rank)],
-  'searching for an archived plugin keeps its original (last) rank, not a renumbered one')
+const visibleCategories = categoriesShown(ranking, false)
+const countShown = (needle) => visibleCategories
+  .reduce((count, category) => count + itemsMatching(category, needle, false).length, 0)
+
+// the unfiltered board: nine sections, one standing card each
+const boardNodes = renderPluginsWithQuery('')
+assert.equal(byClass(boardNodes, 'redaiRankSection').length, 9,
+  'the default board shows the nine formal categories')
+assert.equal(byClass(boardNodes, 'redaiRankTop').length, 9, 'one standing card per section')
+assert.equal(byClass(boardNodes, 'redaiRankRow').length, countShown('') - 9)
+assert.equal(byClass(boardNodes, 'redaiNavCount')[0].props.children,
+  dict['plugin.count'].replace('{n}', countShown('')), 'the header counts the ranked rows on screen')
+assert.equal(byClass(boardNodes, 'redaiRankBasis')[0].props.children,
+  dict['plugin.sortBasis'].replace('{date}', ranking.updatedAt), 'the board states its ordering')
+assert.equal(byClass(boardNodes, 'redaiNavEmpty').length, 0)
+
+// a row query narrows the board but keeps every original rank
+const searchTarget = rows.find((row) => row.category.hidden !== true && row.item.rank > 1)
+const searchWord = searchTarget.item.title.toLowerCase()
+const searchedNodes = renderPluginsWithQuery(searchWord)
+const searchHits = countShown(searchWord)
+assert.ok(searchHits >= 1 && searchHits < countShown(''), 'the fixture search narrows the board')
+assert.equal(byClass(searchedNodes, 'redaiNavCount')[0].props.children,
+  dict['plugin.count'].replace('{n}', searchHits), 'the count follows the filtered board')
+assert.equal(byClass(searchedNodes, 'redaiNavEmpty').length, 0)
+const searchedNums = byClass(searchedNodes, 'redaiRankTopNum')
+  .concat(byClass(searchedNodes, 'redaiRankRowNum'))
+  .map((node) => node.props.children)
+assert.ok(searchedNums.indexOf(rankLabel(searchTarget.item.rank)) > -1,
+  'a matched row keeps the rank the build gave it — searching never renumbers a ranking')
+
+// a category name query keeps that whole section
+const categoryWord = firstCategory.name
+const categoryNodes = renderPluginsWithQuery(categoryWord)
+assert.ok(byClass(categoryNodes, 'redaiRankTop').length >= 1, 'naming a category keeps its section')
+assert.equal(byClass(categoryNodes, 'redaiNavCount')[0].props.children,
+  dict['plugin.count'].replace('{n}', countShown(categoryWord)))
+
+// a miss keeps the empty state, with the count at zero
 const missNodes = renderPluginsWithQuery('zzz-no-such-plugin')
-assert.equal(byClass(missNodes, 'redaiPluginCard').length, 0)
+assert.equal(byClass(missNodes, 'redaiRankSection').length, 0)
 assert.equal(byClass(missNodes, 'redaiNavEmpty').length, 1, 'an empty result keeps the empty-state message')
 assert.equal(byClass(missNodes, 'redaiNavCount')[0].props.children,
-  i18n.locales.zh['plugin.count'].replace('{n}', 0))
+  dict['plugin.count'].replace('{n}', 0))
 
 // ── manifest assertions marketplaces rely on ────────────────────────────────
 assert.equal(pkg.dsh.plugin, true)
@@ -848,25 +1027,46 @@ assert.deepEqual(pkg.dsh.disclosure.network, [])
   emptyButtons[0].props.onClick()
   emptyButtons[1].props.onClick()
 
-  // 8. plugin host-surface filter, ANDed with the search
+  // 8. the category chips: 全部 + nine categories + 更多, and the fold control
   const pluginTab = (pin) => renderPinned((value) => (value === 'sites' ? 'plugins' : pin(value)))
-  const allChips = byClass(pluginTab((value) => value).nodes, 'redaiFilterChip')
-  assert.equal(allChips.length, 4, 'all + the three host surfaces')
-  assert.deepEqual(allChips.map((chip) => chip.props['aria-pressed']), ['true', 'false', 'false', 'false'],
+  // The 更多 chip is the same chip with a modifier class, so match on the prefix.
+  const chipsOf = (nodes) => nodes.filter((node) => node.props
+    && String(node.props.className || '').split(' ')[0] === 'redaiFilterChip')
+  const allChips = chipsOf(pluginTab((value) => value).nodes)
+  assert.equal(allChips.length, 11, '全部 + the nine formal categories + 更多')
+  assert.deepEqual(allChips.map((chip) => chip.props['aria-pressed']).slice(0, 3), ['true', 'false', 'false'],
     'the default chip is 全部')
-  assert.equal(allChips[0].props.children, fmt(zh['plugin.filter.all'], { n: plugins.plugins.length }))
-  const noneHosts = plugins.plugins.filter((row) => row.host === 'none').length
-  assert.ok(noneHosts > 0 && noneHosts < plugins.plugins.length, 'the fixture keeps more than one host surface')
-  assert.equal(allChips[1].props.children,
-    zh['plugin.host.none'] + ' ' + fmt(zh['plugin.filter.count'], { n: noneHosts }))
+  const formalCategories = ranking.categories.filter((row) => row.hidden !== true)
+  const formalTotal = formalCategories.reduce((count, row) => count + row.total, 0)
+  assert.equal(allChips[0].props.children, fmt(zh['plugin.filterAll'], { n: formalTotal }))
+  assert.equal(allChips[1].props.children, zh['plugin.category.ui'] + ' ' + formalCategories[0].total)
+  assert.equal(allChips[10].props.children, zh['plugin.more'], 'the fold control closes the row')
+  assert.ok(!allChips.some((chip) => String(chip.props.children).indexOf(zh['plugin.category.theme']) === 0),
+    'the folded categories stay out of the chip row')
 
-  const noneOnly = pluginTab((value) => (value === 'all' ? 'none' : value)).nodes
-  // Archived cards carry a second class, so match on the leading class name.
-  const rankedCards = noneOnly.filter((node) => node.props && String(node.props.className || '').split(' ')[0] === 'redaiPluginCard')
-  assert.equal(rankedCards.length, noneHosts, 'the chip filters the grid')
-  assert.equal(byClass(noneOnly, 'redaiNavCount')[0].props.children, fmt(zh['plugin.count'], { n: noneHosts }),
-    'the header count follows the filtered ranking')
-  assert.equal(byClass(noneOnly, 'redaiFilterChip')[1].props['aria-pressed'], 'true')
+  // §4.3 — a folded category renders nothing until 更多 is pressed
+  const foldedNodes = pluginTab((value) => value).nodes
+  assert.equal(byClass(foldedNodes, 'redaiRankSection').length, 9, 'nine sections while folded')
+  assert.ok(!foldedNodes.some((node) => node.props && node.props.children === zh['plugin.category.theme']),
+    'theme and fun are absent until the row is unfolded')
+
+  const unfoldedNodes = pluginTab((value) => (value === false ? true : value)).nodes
+  const unfoldedChips = chipsOf(unfoldedNodes)
+  assert.equal(unfoldedChips.length, 13, 'eleven categories + 全部 + 收起')
+  assert.equal(unfoldedChips[12].props.children, zh['plugin.less'])
+  assert.equal(byClass(unfoldedNodes, 'redaiRankSection').length, 11, 'all eleven sections once unfolded')
+
+  // one category selected: exactly one section, and its rows keep their ranks
+  const onlyMemory = pluginTab((value) => (value === 'all' ? 'memory' : value)).nodes
+  const memoryCategory = ranking.categories.find((row) => row.id === 'memory')
+  assert.equal(byClass(onlyMemory, 'redaiRankSection').length, 1, 'the chip filters the board')
+  assert.equal(byClass(onlyMemory, 'redaiRankTop').length, 1)
+  assert.equal(byClass(onlyMemory, 'redaiRankRow').length, memoryCategory.items.length - 1)
+  assert.equal(byClass(onlyMemory, 'redaiRankTopNum')[0].props.children, '01',
+    'the rank the build decided survives the filter')
+  assert.equal(byClass(onlyMemory, 'redaiNavCount')[0].props.children,
+    fmt(zh['plugin.count'], { n: memoryCategory.items.length }))
+  assert.equal(chipsOf(onlyMemory)[1 + CATEGORY_IDS.indexOf('memory')].props['aria-pressed'], 'true')
 
   // 9. install command stays plain text, next to a copy control
   assert.equal(typeof byClass(pluginDetailNodes, 'redaiInstall')[0].props.children, 'string',
@@ -874,15 +1074,17 @@ assert.deepEqual(pkg.dsh.disclosure.network, [])
   assert.equal(byClass(pluginDetailNodes, 'redaiCopy')[0].props.children, zh['plugin.copy'],
     'the copy button renders without a handler')
   const copiedNodes = flatten(PluginDetailView({
-    plugin: detailSample, t: injected.t, copied: true, onCopy: () => {}, onOpen: () => {}, onBack: () => {},
+    plugin: detailSample, category: detailCategory, t: injected.t, english: false,
+    copied: true, onCopy: () => {}, onOpen: () => {}, onBack: () => {},
   }))
   assert.equal(byClass(copiedNodes, 'redaiCopy')[0].props.children, zh['plugin.copied'])
   const copyCalls = []
   const copyNodes = flatten(PluginDetailView({
-    plugin: detailSample, t: injected.t, onCopy: (command) => copyCalls.push(command), onOpen: () => {}, onBack: () => {},
+    plugin: detailSample, category: detailCategory, t: injected.t, english: false,
+    onCopy: (command) => copyCalls.push(command), onOpen: () => {}, onBack: () => {},
   }))
   byClass(copyNodes, 'redaiCopy')[0].props.onClick()
-  assert.deepEqual(copyCalls, ['dsh plugin --profile desktop add ' + detailSample.pkg],
+  assert.deepEqual(copyCalls, [installCommand(detailSample)],
     'the copy control copies the exact command')
 
   // 10. dust motes: present only while the star animation runs
@@ -949,8 +1151,10 @@ assert.deepEqual(pkg.dsh.disclosure.network, [])
   // 12b. every status badge ships a light/dark pair instead of one fixed colour.
   //      The pairs themselves are measured in preview/_contrast.mjs (text vs the
   //      composited 18% wash, both themes); this keeps them paired in the source.
-  const badgeSelectors = ['.redaiTagPill.hot', '.redaiTagPill.new', '.redaiBadge.none',
-    '.redaiBadge.yes', '.redaiBadge.unknown', '.redaiBadge.stale', '.redaiBadge.active']
+  //      v2 keeps three coloured badges: the two site pills and the plugin
+  //      "declared" flag. The v1 host-surface and maintenance badges left with
+  //      the v1 data.
+  const badgeSelectors = ['.redaiTagPill.hot', '.redaiTagPill.new', '.redaiBadge.tagged']
   for (const selector of badgeSelectors) {
     const at = clientSource.indexOf(selector + '{')
     assert.ok(at > -1, `missing badge rule: ${selector}`)
@@ -987,49 +1191,34 @@ assert.deepEqual(pkg.dsh.disclosure.network, [])
   assert.ok(/body\[data-ds-dark-theme\] \.redaiNavPage\{color-scheme:dark\}/.test(clientSource),
     "the host's dark switch must set color-scheme:dark on the page")
 
-  // 12f. the retuned halves, and every value they replaced. The first three only
-  //      failed once the hover veil was counted as part of the surface; the rest
-  //      only failed once that veil was the host's real 8% / 6% instead of the
-  //      estimate the harness used to carry. Read it as a history: each retired
-  //      literal must be gone, and the colour that replaced it must be present.
-  const RETIRED = [
-    ['#ff8a8d', '#ffbfc2'], ['#ff9d6e', '#ffc2a5'], ['#e0b34a', '#f0d089'],
-    ['#ffa8ab', '#ffbfc2'], ['#ffab84', '#ffc2a5'], ['#ebc266', '#f0d089'],
-    ['#eecb7d', '#f0d089'], ['#5fd39b', '#8de0b8'], ['#14603c', '#125736'],
-    ['#135d3a', '#125736'], ['#6f4e00', '#684900'], ['#6c4c00', '#684900'],
-  ]
-  for (const [retired, now] of RETIRED) {
+  // 12f. every retired badge colour stays retired. The plugin board now carries a
+  //      single coloured badge — "declared" — and it keeps the measured pair.
+  const RETIRED = ['#ff8a8d', '#ff9d6e', '#e0b34a', '#ffa8ab', '#ffab84', '#ebc266',
+    '#eecb7d', '#5fd39b', '#14603c', '#135d3a', '#6f4e00', '#6c4c00']
+  for (const retired of RETIRED) {
     assert.ok(!clientSource.includes(retired), `retired badge colour came back: ${retired}`)
-    assert.ok(clientSource.includes(now), `missing retuned badge colour: ${now}`)
   }
+  assert.ok(clientSource.includes('light-dark(#125736,#8de0b8)'),
+    'the declared-plugin badge keeps the pair the contrast harness measured')
 
-  // 12g. the archived card must not dim through the whole subtree: at .62 the
-  //      worst badge reads 2.40:1, and clearing 4.5 would need opacity >= .97 —
-  //      which is no signal at all. It is flattened instead (fill + hairline).
-  assert.ok(!/\.redaiPluginCardArchived\{[^}]*opacity/.test(clientSource),
-    'the archived card must not carry a card-wide opacity — it drags the badges under 4.5')
-  // The fill has to be a step the host actually publishes *and* one that is not
-  // the page colour: light `bg-layer-1` is white, identical to `bg-base`, so a
-  // layer-1 fill is invisible in the default theme. module-platform is that step,
-  // with layer-1 kept as the fallback for shells that do not ship it.
-  assert.ok(/\.redaiPluginCardArchived\{background:var\(--dsw-alias-bg-module-platform,var\(--dsw-alias-bg-layer-1\)\)/.test(clientSource),
-    'the archived card needs the module-platform step, or the fill equals the page in light')
+  // 12g. an archived row must not fade. Its rank, name and stars are still text a
+  //      user has to read, and WCAG's inactive exemption does not apply to a
+  //      button that still opens a detail page — the v1 card learned this at
+  //      .62 opacity (2.40:1). The state is carried by the badge and by the
+  //      bottom-of-category order instead, both of which survive any theme.
+  assert.ok(!/\.redaiRank(Row|Top)\{[^}]*opacity/.test(clientSource),
+    'a ranked row must not dim its own text')
+  assert.ok(clientSource.includes('.redaiBadge.archived'), 'archived state needs its own badge')
 
-  // 12i. Two things must stay true about badges on that card. The neutral three
-  //      lose their pill against the fill, so they lift to bg-base; the six washed
-  //      ones keep their colour, but re-stacked on bg-layer-1 so the card's fill
-  //      cannot decide their contrast (in dark, module-platform is brighter than
-  //      the page and cost a washed badge 0.9 of ratio: 5.05 -> 4.14).
-  for (const neutral of ['unknown', 'archived', 'cat']) {
-    assert.ok(clientSource.includes('.redaiPluginCardArchived .redaiBadge.' + neutral),
-      `the ${neutral} badge needs a raised fill on the archived card, or it stops reading as a pill`)
+  // 12i. the two neutral badges keep an outline *and* a raised fill, so they read
+  //      on the page as well as on a layer-1 surface; the declared badge keeps
+  //      its 18% wash, which is the thing the contrast harness measures.
+  for (const neutral of ['untagged', 'archived', 'cat']) {
+    assert.ok(new RegExp('\\.redaiBadge\\.' + neutral + '\\{[^}]*box-shadow:inset 0 0 0 \\.5px').test(clientSource),
+      `the ${neutral} badge needs a hairline, or it stops reading as a pill`)
   }
-  assert.ok(/\.redaiPluginCardArchived \.redaiBadge\.unknown,[^{]*\{background:var\(--dsw-alias-bg-base\)\}/.test(clientSource),
-    'that override must be bg-base — one step above the card it sits on')
-  assert.ok(/\.redaiPluginCardArchived \.redaiBadge\{background:linear-gradient\(color-mix\(in srgb,currentColor 18%/.test(clientSource),
-    'the wash must be re-stacked on layer-1, or the archived fill decides the badge contrast')
-  assert.ok(!/\.redaiPluginCardArchived \.redaiBadge\{background:var\(--dsw-alias-bg-[a-z0-9-]+\)\}/.test(clientSource),
-    'a flat fill on every archived-card badge would erase the status colour')
+  assert.ok(/\.redaiBadge\.tagged\{[^}]*background:color-mix\(in srgb,currentColor 18%/.test(clientSource),
+    'the declared badge keeps its wash')
 
   // 12h. the filter chips count up while you type; proportional digits make the
   //      row twitch on every keystroke.
@@ -1045,7 +1234,8 @@ assert.deepEqual(pkg.dsh.disclosure.network, [])
   assert.ok(clientSource.includes('.redaiNavMenuHint'))
   for (const key of ['countFiltered', 'countGroup', 'empty.hint', 'empty.add', 'empty.plugins', 'notice.removed',
     'notice.undo', 'notice.close', 'action.detail', 'action.remove', 'menu.hint', 'plugin.filter',
-    'plugin.filter.all', 'plugin.filter.count', 'plugin.copy', 'plugin.copied', 'search.clear']) {
+    'plugin.filterAll', 'plugin.sortBasis', 'plugin.seeAll', 'plugin.boardCounts', 'plugin.tagged',
+    'plugin.untagged', 'plugin.archived', 'plugin.whyHere', 'plugin.copy', 'plugin.copied', 'search.clear']) {
     assert.ok(key in zh && key in i18n.locales.en, `missing dictionary key: ${key}`)
   }
   assert.equal(zh['search.clear'], '清除搜索', 'the clear control has a Chinese label')
@@ -1422,4 +1612,4 @@ assert.deepEqual(pkg.dsh.disclosure.network, [])
 }
 
 console.log('ok — %d registrations, %d built-in links, %d detail pages, %d ranked plugins, store + star + banner round-trip',
-  registrations.length, cards.length, Object.keys(details.sites).length, ordered.length)
+  registrations.length, cards.length, Object.keys(details.sites).length, rows.length)

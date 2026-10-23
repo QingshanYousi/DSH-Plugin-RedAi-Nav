@@ -1,0 +1,185 @@
+{
+  "version": 2,
+  "generatedAt": "2026-10-23",
+  "note": "生成物，供人工复核；dead 是真 404，renamed 是列表里还在用旧名、仓库已改名（已按新名入榜），forks 是同名不同 owner 的重复收录。",
+  "dead": [
+    "AgentsDanceAI/deepseek-harness-cloud",
+    "JohnXu22786/command-scout",
+    "JohnXu22786/context-pruner",
+    "JohnXu22786/docgen",
+    "JohnXu22786/docs-retriever",
+    "JohnXu22786/github-mcp",
+    "JohnXu22786/session-titler",
+    "JohnXu22786/skill-framework",
+    "JohnXu22786/snippet-expander"
+  ],
+  "renamed": [
+    {
+      "from": "btspoony/dsh-advisor",
+      "to": "omdsh-dev/dsh-advisor",
+      "stars": 32
+    },
+    {
+      "from": "btspoony/dsh-llm-fallbacks",
+      "to": "omdsh-dev/dsh-llm-fallbacks",
+      "stars": 23
+    },
+    {
+      "from": "Buyi-wsgzg/dsh-sidechain",
+      "to": "omdsh-dev/dsh-sidechain",
+      "stars": 14
+    },
+    {
+      "from": "CH4ACKO3/dsh-harmony",
+      "to": "memorax-ai/dsh-harmony",
+      "stars": 20
+    },
+    {
+      "from": "dsh-external/dsh-feishu-notify",
+      "to": "omdsh-dev/dsh-feishu-notify",
+      "stars": 1
+    },
+    {
+      "from": "dsh-external/dsh-vision",
+      "to": "william-jin-cmu/dsh-vision",
+      "stars": 30
+    },
+    {
+      "from": "forrestchang/dsh-multica-runtime",
+      "to": "multica-ai/dsh-multica-runtime",
+      "stars": 71
+    },
+    {
+      "from": "gwrsfsfeefdsfs/dsh-skill-curator",
+      "to": "Klukai-416-Clukay/dsh-skill-curator",
+      "stars": 1
+    },
+    {
+      "from": "icetomoyo/dsh_workflow",
+      "to": "omdsh-dev/dsh_workflow",
+      "stars": 149
+    },
+    {
+      "from": "jiangnanquan/dsh-ux",
+      "to": "jiangnanquan/dsh-uxexo",
+      "stars": 9
+    },
+    {
+      "from": "lire1131/dsh-undo-plugin",
+      "to": "lire1131/dsh-undo-savepoint",
+      "stars": 188
+    },
+    {
+      "from": "Lum1104/dsh-browser",
+      "to": "omdsh-dev/dsh-browser",
+      "stars": 892
+    },
+    {
+      "from": "modusensus/dsh-mneme",
+      "to": "slow-stack/mneme",
+      "stars": 173
+    },
+    {
+      "from": "Noob-stupid/dsh-plugin-hub",
+      "to": "Noob-stupid/dsh-plugin-gating-hub",
+      "stars": 109
+    },
+    {
+      "from": "omdsh-dev/dsh-at-file",
+      "to": "FSMargoo/dsh-at-file",
+      "stars": 532
+    },
+    {
+      "from": "omdsh-dev/fabric",
+      "to": "omdsh-dev/stent",
+      "stars": 18
+    },
+    {
+      "from": "openma-ai/deepseek-harness-tui",
+      "to": "openma-ai/Martty",
+      "stars": 80
+    },
+    {
+      "from": "Phant0Meow/dsh-memory-meow",
+      "to": "Phant0Meow/dsh-meow-memory",
+      "stars": 258
+    },
+    {
+      "from": "zhu1090093659/dsh-web-ui",
+      "to": "zhu1090093659/dsh-web",
+      "stars": 9363
+    }
+  ],
+  "forks": [
+    {
+      "name": "dsh-browser",
+      "kept": "omdsh-dev/dsh-browser",
+      "dropped": "anweat/dsh-browser",
+      "category": "fun",
+      "stars": 29
+    },
+    {
+      "name": "dsh-cost-meter",
+      "kept": "Han-1413141/dsh-cost-meter",
+      "dropped": "Sttrevens/dsh-cost-meter",
+      "category": "ui",
+      "stars": 1
+    },
+    {
+      "name": "dsh-desktop",
+      "kept": "foolgry/dsh-desktop",
+      "dropped": "FuqiangCraft/dsh-desktop",
+      "category": "ui",
+      "stars": 4
+    },
+    {
+      "name": "dsh-drag-and-drop",
+      "kept": "bill9109/dsh-drag-and-drop",
+      "dropped": "AKIRACOD/dsh-drag-and-drop",
+      "category": "ui",
+      "stars": 5
+    },
+    {
+      "name": "dsh-guardian",
+      "kept": "cdxiaodong/dsh-guardian",
+      "dropped": "lonelymoon87/dsh-guardian",
+      "category": "runtime",
+      "stars": 1
+    },
+    {
+      "name": "dsh-memory",
+      "kept": "flymysql/dsh-memory",
+      "dropped": "Jesse-njx/dsh-memory",
+      "category": "memory",
+      "stars": 1
+    },
+    {
+      "name": "dsh-memory",
+      "kept": "flymysql/dsh-memory",
+      "dropped": "qwert702/dsh-memory",
+      "category": "memory",
+      "stars": 2
+    },
+    {
+      "name": "dsh-pet",
+      "kept": "FlytoMAYDAY80/dsh-pet",
+      "dropped": "zealot00/dsh-pet",
+      "category": "ui",
+      "stars": 4
+    },
+    {
+      "name": "dsh-plugins",
+      "kept": "wsxwj123/dsh-plugins",
+      "dropped": "lancecheney/dsh-plugins",
+      "category": "ui",
+      "stars": 4
+    },
+    {
+      "name": "dsh-remote",
+      "kept": "flymysql/dsh-remote",
+      "dropped": "xgone/dsh-remote",
+      "category": "runtime",
+      "stars": 44
+    }
+  ]
+}

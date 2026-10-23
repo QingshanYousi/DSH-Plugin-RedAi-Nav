@@ -4,7 +4,7 @@
 
 ![面板截图](docs/screenshot.png)
 
-**88 个开发者常用站点，分 8 组，按 DSH 用户真正会干的事挑的——不是网址大全。** 搜索、`↑↓`/`Enter` 键盘直达、星标收藏、12 条插件榜，都在同一个面板里。
+**88 个开发者常用站点，分 8 组，按 DSH 用户真正会干的事挑的——不是网址大全。** 搜索、`↑↓`/`Enter` 键盘直达、星标收藏、按分类的前 10 插件榜，都在同一个面板里。
 
 零宿主端代码、零第三方依赖，权限面可逐条验证，见[权限声明](#权限声明)。
 
@@ -155,110 +155,125 @@ npm run preview       # 生成 preview/index.html（静态预览，不必重启�
 
 **为什么不放在左侧导航？** 官方已经有一个「插件」页（管理已安装、启用停用），再加一行「插件榜」，两个含“插件”的入口必然打架，而且导航行只会越加越多。放进面板内做第二层，既不加导航项，也直接复用了详情页、搜索和键盘操作。
 
-每条记录给的不只是排名，而是**判断依据**：
+### 榜是什么
 
-| 字段 | 作用 |
+**按分类的前 10 名**，不是一张长列表：
+
+- 11 个分类，其中 9 个默认展开，**「主题与外观」「娱乐」折叠**在 `更多` 后面——这两类量大但和目标用户的相关性低，不折叠会盖住主线。
+- 每个分类：第 1 名独立大卡（22px 品牌色 `01`），第 2–10 名 44px 紧凑行；分类节标题右侧写收录总量，节底再写一次「该分类共 N 个」并给「查看全部 →」，直链到来源列表对应锚点。
+- 分类筛选条 = `全部` + 9 个分类 + `更多`，每个 chip 上的数字是该分类**在来源列表里的收录总量**（94 就是 94 个，不是这个榜里的 10 个）。
+- 顶部一行写清排序依据：`按星标降序 · 已归档沉底 · 更新于 YYYY-MM-DD`。
+- 搜索同时作用于分类名和条目名/描述；**命中后不重新编号**——榜的名次是算出来的，搜索只是镜头。
+
+排序规则（脚本实现，数据文件里也写着）：
+
+1. 仓库打了 `dsh-plugin` 或 `deepseek-harness` topic 的排在前面；
+2. 组内按 star 降序，同分按最近提交；
+3. `archived` 仓库一律沉到本类末尾；
+4. 取前 10。
+
+Star 是「有多少人在看」的信号，不是质量证明。所以这个榜只声称「这是该分类里最受关注的十个」，不声称「最好用的十个」——排序依据公开，你不同意可以自己按别的标准去看「查看全部」。
+
+### 数据从哪来
+
+| 项 | 说明 |
 |---|---|
-| `desc` / `why` | 一句话说清解决什么问题、为什么值得装（不是抄仓库简介） |
-| `host` | **权限面**：`none` 零宿主端 / `yes` 含宿主端 / `unknown` 未核查 |
-| `pushed` | 最近提交日期——比 star 更能说明还在不在维护 |
-| `pkg` | 可直接复制的安装目标 |
-| `category` | 单个分类词，取值只有 `代码` / `记忆` / `搜索` / `界面` / `协作` / `运维` / `上下文` |
-| `highlights` | 3 条、每条 8–20 字的具体能力，不写“功能强大”这种空话 |
-| `caveats` | 1–2 条真实使用注意（要不要重启、会不会替换默认工具），没有就空数组 |
-| `stars` / `forks` / `issues` | 抓取当日快照（不是实时），三个数字同一口径、同一次请求 |
-| `created` | 仓库创建日期，取自 GitHub REST API |
-| `archived` / `license` / `language` / `homepage` / `topics` | 同上；`license` 取 `spdx_id`，`NOASSERTION` 归一为 `null` |
-| `release` | `{ tag, at }`，来自 `GET /releases/latest`，没有 release 则 `null` |
-| `maintained` | 派生字段：`archived` 仓库 → `archived`；`pushed` 距今 > 180 天 → `stale`；否则 `active` |
+| 来源列表 | [beancookie/awesome-dsh-plugin](https://github.com/beancookie/awesome-dsh-plugin)（社区维护，按 11 个分类收录全部 DSH 插件） |
+| 抓取 | `scripts/build-ranking.mjs`：读列表 README 的 raw markdown 解析分类与条目，再用 GitHub search 接口批量查仓库元信息 |
+| 名次 | 全部由脚本算好写进 `data/plugins.json`，运行时只渲染，不重排 |
+| 更新 | 手动触发、随版本发布；面板上写「更新于 YYYY-MM-DD」，**不写实时** |
+| 运行期 | 插件自身**仍然零出网请求**（`disclosure.network: []`），抓取只在维护者本地跑 |
 
-抓取字段由 `scripts/fetch-plugins.mjs` 写回（维护者本地手动跑，**插件运行期当前不出网**）：它只覆盖上面这批抓取/派生字段（含 `stars` / `forks` / `issues` —— 三者同一口径），`id` / `title` / `pkg` / `repo` / `desc` / `why` / `pushed` / `host` / `tags` / `category` / `highlights` / `caveats` 一律保留；单条请求失败时保留旧值并打印警告，不会把字段清空。
+清单里每条只保留 API 能证明的事实：`stars` / `forks` / `pushed` / `created` / `archived` / `language` / `license` / `homepage` / `topics`，加上来源列表给的一句话描述。**没有 `why` / `highlights` / `caveats`** —— v1 那 12 条是手写的编辑意见，换成 500 条收录后不可能逐条编，也不该编。详情页的「为什么在这」由条目自己的数据拼出来：
 
-```bash
-node scripts/fetch-plugins.mjs          # 抓取并写回 data/plugins.json
-node scripts/fetch-plugins.mjs --check  # 只抓取比对，不写文件
-```
+> 本类第 3 名（该分类共 94 个）· 23 星 · 最近一次提交 10-21 · 未归档 · 已标注 DSH 相关 topic
 
-`--check` 是门禁，不是打印器：文件过期 **或** 本轮有任一条没抓成功（限流、断网、404）都会打印 `unverified N plugin(s)`，但两者用**不同的退出码**，因为要处理的事不一样。
+全是可核对的事实，没有一句是猜的。
+
+### 怎么提 PR
+
+两种加法，别混：
+
+- **让插件上榜**：去 [beancookie/awesome-dsh-plugin](https://github.com/beancookie/awesome-dsh-plugin) 提 PR，在对应分类下加一行 `- [名称](仓库链接) — 一句话描述`。顺手给自己的仓库打上 `dsh-plugin` topic：不打不会被排除，但会排在已标注的条目之后。
+- **改本站的榜单**（分类、排序、展示方式）：给本仓库提 PR，改 `scripts/build-ranking.mjs` 或 `src/plugins.js`，跑 `node scripts/build-ranking.mjs --offline && npm test` 保证自洽，再跑一次真实抓取并提交 `data/plugins.json` 的 diff。
 
 ### 抓取脚本与 CI
 
-**(a) 成本**：每次 `--check` 都要联网，12 条 × 2 个请求 = **24 次**。GitHub 未认证配额是 **60 次/小时**，所以匿名状态下每小时最多跑 2 次；设了 `GITHUB_TOKEN` 则是 5000 次/小时。
-
 ```bash
-GITHUB_TOKEN=ghp_xxx node scripts/fetch-plugins.mjs --check   # 5000 req/h，token 不会出现在任何输出里
+node scripts/build-ranking.mjs            # 真实抓取并写回（约 7 分钟，会打印每类命中/死链）
+node scripts/build-ranking.mjs --offline  # 不联网：schema、排序、rank 连续、与内联副本是否一致
 ```
 
-**(b) 退出码**
+**(a) 请求量**：约 500 个仓库，`q=repo:a/b repo:c/d …` 每批 10 个，共约 50 次 search 请求（未认证 **10 次/分钟**，间隔 7s）。另外 search 查不到的那 30 条会各发一次**核心 API** 请求（未认证 **60 次/小时**，间隔 1.1s）——这两个配额是分开算的。设了 `GITHUB_TOKEN` 后 5000 次/小时，两处间隔都降到 0.2s（token 只以长度出现在输出里）。
 
-| exit | 含义 | 该做什么 |
-|---|---|---|
-| `0` | 内容与 API 一致，且每条都验证过 | 什么都不用做 |
-| `1` | 数据**确实过期**（内容变了），或文件不合规范 | 跑一次写入模式，审 diff，提交 |
-| `2` | 本轮**没能验证**（限流 / 断网 / 404），不是数据过期 | 等 reset 窗口、换出口、设 `GITHUB_TOKEN`，或改用 `--offline` |
+核心额度不够时脚本**直接失败**（等一个小时不叫"跑一次脚本"），不会写半份数据；报错会告诉你还需要等几分钟。
 
-`1` 优先于 `2`：数据真的过期是「发现」，验证不了只是「没检查」，前者更严重。
+**(b) 整批 422 就二分**：批次里只要有一个仓库改名/删除，search 会整批拒绝。脚本二分到单条，单条仍失败的记为死链。
 
-**(c) 限流或离线怎么办**
-- 限流：警告里带 `resets at <ISO 时间>`，等过那个时间点即可（匿名 60/h 是滚动窗口）
-- 换出口 IP 可以立刻重置匿名配额；或者设 `GITHUB_TOKEN` 一劳永逸
-- 完全离线（内网 CI）：`node scripts/fetch-plugins.mjs --check --offline`，不联网，只校验 schema、派生字段（`maintained` 与 `archived`/`pushed` 是否自洽）、文件是否规范（键序 / 缩进），以及 **`data/plugins.json` 与 `lib/client.js` 内联副本是否一致**（等价于 `embed-data --check` 的漂移检测）。离线模式不产生 unverified，只会 `exit 0` 或 `1`
+**(c) 死链才不进榜，改名要跟**：search 接口的 `repo:` 过滤**不跟随重命名**，仓库一改名就查不到，看起来和删除一模一样。所以批次里查不到的那几条会再走一次 `GET /repos/{owner}/{name}`（fetch 跟随 301），拿到 `full_name` 当新名入榜；**只有 404 才算死链**。0.9.0 第一次抓取把 20 条改名误判成死链，榜首因此少了 `dsh-browser` 892★ 这类条目。
 
-**(d) 别把它挂成每个 PR 的硬门禁**：它依赖外部 API 和配额，PR 会被无关的限流搞红。建议做成**每日定时任务**（cron / GitHub Actions schedule），失败时开 issue 而不是拦合并；PR 阶段只跑 `embed-data --check` 和 `test/smoke.mjs`，两者都离线、确定性。
+三种情况分开记在 `data/ranking-warnings.json`：`dead`（真 404）、`renamed`（`{from, to, stars}`，已按新名入榜）、`forks`（同名不同 owner，保留星标高者）。
 
-**语言范围**：界面文案（chrome：标签、字段名、按钮、空状态、维护状态等）提供中英双语；插件正文（`desc` / `why` / `highlights` / `caveats`）保留中文原文，英文 locale 下不做字段级翻译——这是本轮的产品决定，不是遗漏。
+**(d) 失败不覆盖**：抓取中途失败直接非零退出，`data/plugins.json` 一个字不动。半个新榜比旧榜更危险。
 
-`host` 是这一列里最值钱的：**dsh 插件跑在主进程内、不在沙箱里**，装一个插件等于把 shell 和文件权限交给它。所以只有核查过的才标 `none`（例如 `dsh-navbar` 的主入口就是一个空 `apply(){}`），没核过的一律 `unknown`——不猜。
+**(e) CI 只跑 `--offline`**：外部 API 和配额不该拦 PR。`ci.yml` 里数据校验那一步就是 `node scripts/build-ranking.mjs --offline`——离线、确定性、能复现。
 
-![插件详情](docs/plugin-detail.png)
+### 数据结构
 
-### 数据与更新周期
-
-`data/plugins.json`：
+`data/plugins.json` 是**生成物，别手改**（改了也会被 `--offline` 的规范形式检查打回）：
 
 ```json
 {
-  "version": 1,
+  "version": 2,
   "updatedAt": "2026-10-23",
-  "cadence": "monthly",
-  "method": "排序按 Star、最近提交、权限面、可用性四项人工核定；Star / Fork / Issue 数为抓取当日快照",
-  "plugins": [
+  "source": {
+    "list": "https://github.com/beancookie/awesome-dsh-plugin",
+    "method": "类内按星标降序；已归档沉底；未标注 topic 的排在已标注之后",
+    "rateLimit": "未经认证的 search 接口，10 次/分钟"
+  },
+  "categories": [
     {
-      "id": "dsh-navbar",
-      "title": "dsh-navbar",
-      "pkg": "@vlln/dsh-navbar",
-      "repo": "https://github.com/vlln/dsh-navbar",
-      "desc": "在对话右缘加一列节点，点一下跳到某条提问",
-      "why": "会话变长后回翻很痛苦。它把每条用户消息画成短横线，滚动位置同步高亮。",
-      "pushed": "2026-09-10",
-      "host": "none",
-      "tags": ["导航", "对话"],
-      "category": "界面",
-      "highlights": ["右缘一列短横线，点哪条跳哪条", "滚动时高亮跟着走，翻长会话不迷路", "只画导航条，不碰会话内容和权限"],
-      "caveats": ["仓库已归档，只读，不再接收更新"],
-      "stars": 50,
-      "forks": 1,
-      "issues": 0,
-      "created": "2026-08-10",
-      "archived": true,
-      "license": "MIT",
-      "language": "TypeScript",
-      "homepage": null,
-      "topics": ["dsh", "dsh-plugin", "plugin", "ui"],
-      "release": null,
-      "maintained": "archived"
+      "id": "ui",
+      "name": "UI 增强",
+      "nameEn": "UI",
+      "hidden": false,
+      "anchor": "#-ui-增强",
+      "total": 84,
+      "listed": 94,
+      "tagged": 84,
+      "items": [
+        {
+          "rank": 1,
+          "full": "0xsline/dsh-spotlight",
+          "title": "dsh-spotlight",
+          "repo": "https://github.com/0xsline/dsh-spotlight",
+          "desc": "键盘优先的命令面板（command palette）",
+          "stars": 23,
+          "forks": 4,
+          "pushed": "2026-10-21",
+          "created": "2026-08-31",
+          "archived": false,
+          "tagged": true,
+          "language": "TypeScript",
+          "license": "MIT",
+          "homepage": null,
+          "topics": ["dsh-plugin"]
+        }
+      ]
     }
   ]
 }
 ```
 
-已归档的条目在列表里整体降权并沉到末尾，序号按排序后重算——所以看到「第 12 位是已归档」不是排序坏了，而是刻意的：还在维护的东西排前面。
+- `total` 是该分类**真正能进榜的数量**：来源列表条目减去死链与重复 fork 之后，还活着的仓库数。节标题写「榜上 10 / 收录 84」，chip 上的数字也是它。
+- `listed` 是来源列表里该分类的原始条目数（含死链与 fork），只用于审计——不显示给用户。
+- `tagged` 是 `total` 里打了 DSH topic 的数量。它必须和 `total` 同口径，否则「10 已标注 / 13 收录」会被读者理解成「3 个未标注」，而真相往往是「3 条死链」。
+- `items` 每类最多 10 条，`rank` 从 1 连续；已归档的在末尾，未标注 topic 的在已标注之后——这两条是 `--offline` 硬校验。
+- `hidden` 表示默认折叠，`anchor` 是来源 README 里的锚点，用来拼「查看全部 →」的链接。
 
-界面上只写「数据更新于 X 月 X 日 · 按月更新」，**不写“实时”**——它不是实时数据，装作实时就是骗人。
+### 语言范围
 
-`method` 是必填的：排行榜如果不写评选标准，就等于宣称“我们说了算”，用户发现不对劲时会连榜单一起不信。给依据比给结论更重要，这恰好也是解决信息差的核心。
-
-当前 12 条的分类、功能要点与使用注意是人工写的，`host` 由我逐个核查主入口判定；仓库侧的事实（fork、issue、创建日期、许可、最新 release、是否归档）由 `scripts/fetch-plugins.mjs` 刷新，抓不到的字段留 `null` 而不是编一个。
+界面文案（标签、字段名、按钮、空状态、分类名）中英双语；插件描述保留来源列表的中文原文，英文 locale 下不做字段级翻译——和站点详情同样的产品决定，不是漏翻。
 
 ## 站点详情
 
@@ -297,12 +312,13 @@ lib/index.js          # 宿主端空壳（无行为）
 lib/client.js         # 生成物：侧栏入口 + 页面（由 src/ 拼装，勿手改）
 src/store.js          # helpers + localStorage store（纯函数，无 React）
 src/components.js     # 站点卡片 / Banner / 站点详情 / 计数器 / 站点与动效 CSS
-src/plugins.js        # 插件榜卡片 / 插件详情 / 排名函数 / 插件榜 CSS
+src/plugins.js        # 插件榜（分类节 / 第 1 名大卡 / 2–10 紧凑行 / 详情页）与插件榜 CSS
 src/page.js           # NavPage + 侧栏图标 + inject/apply + exports（唯一的 React 依赖面）
 src/data.js           # 生成物：data/*.json 的内联快照
 data/links.json       # 站点清单（唯一数据源）
 data/details.json     # 站点详情（可选，按 URL 索引）
-data/plugins.json     # 插件榜（含更新周期与评选方法）
+data/plugins.json     # 插件榜（schema v2，生成物；含来源、排序依据、每类前 10）
+data/ranking-warnings.json  # 生成物：死链与同名 fork 的人工复核清单
 data/i18n.json        # 字典（唯一数据源）
 locale/*.json         # 由脚本生成
 docs/screenshot.png   # 列表页截图
@@ -311,7 +327,7 @@ docs/plugins.png      # 插件榜截图
 docs/plugin-detail.png
 scripts/build.mjs     # 零依赖拼装：src/*.js → lib/client.js
 scripts/embed-data.mjs
-scripts/fetch-plugins.mjs  # 抓取脚本（仅维护者本地跑，运行期不联网）
+scripts/build-ranking.mjs   # 排行榜抓取脚本（仅维护者本地跑，运行期不联网；CI 只跑 --offline）
 scripts/preview.mjs   # 静态预览：--plugins / --detail / --plugin-detail
 test/smoke.mjs
 ```
@@ -328,7 +344,8 @@ test/smoke.mjs
 - [x] M3 交互：`↑↓` 选择 / `Enter` 打开 / `Esc` 清空、最近打开 chip、自动聚焦搜索
 - [x] M4 内容：首屏介绍位、星标收藏、站点详情页、hot/new 标签
 - [x] M5 选品：按 DSH 用户画像重排为 8 组 88 站，新增 MCP 与插件、资讯与榜单
-- [x] M6 增值：插件榜（12 条，含权限面、维护活跃度、更新周期）+ 插件详情页
+- [x] M6 增值：插件榜 + 插件详情页
+- [x] M6.1 榜单 v2：来源改为 awesome-dsh-plugin，11 个分类各取前 10，排序依据公开、死链不进榜
 - [ ] M7 分发：npm 发布、自托管插件市场索引、`dsh-plugin` topic、awesome 收录
 - [ ] M8 扩展：右侧栏自定义 tab 类型、`/nav` 命令、网址/工作区/命令三合一入口
 - [ ] M9 可选：本地「常用」计数（hot 仍保持榜单制，暂不做联网统计）

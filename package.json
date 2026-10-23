@@ -1,6 +1,6 @@
 {
   "name": "dsh-plugin-redai-nav",
-  "version": "0.7.2",
+  "version": "0.9.0",
   "description": "RedAI · 网址导航 — a bookmarks panel for DeepSeek Harness: a sidebar entry and a searchable site directory, installed and removed as an ordinary bundle plugin.",
   "type": "module",
   "license": "MIT",
@@ -45,8 +45,10 @@
   },
   "scripts": {
     "build": "node scripts/build.mjs",
+    "ranking": "node scripts/build-ranking.mjs",
+    "ranking:check": "node scripts/build-ranking.mjs --offline",
     "data": "node scripts/embed-data.mjs && node scripts/build.mjs",
-    "data:check": "node scripts/embed-data.mjs --check && node scripts/build.mjs --check",
+    "data:check": "node scripts/build-ranking.mjs --offline && node scripts/embed-data.mjs --check && node scripts/build.mjs --check",
     "preview": "node scripts/preview.mjs",
     "test": "node test/smoke.mjs",
     "prepublishOnly": "npm run data:check && npm test"

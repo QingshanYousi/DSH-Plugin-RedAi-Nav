@@ -24,7 +24,7 @@ const plugins = read('data/plugins.json')
 if (links.version !== 1) throw new Error(`unsupported links schema version: ${links.version}`)
 if (i18n.version !== 1) throw new Error(`unsupported i18n schema version: ${i18n.version}`)
 if (details.version !== 1) throw new Error(`unsupported details schema version: ${details.version}`)
-if (plugins.version !== 1) throw new Error(`unsupported plugins schema version: ${plugins.version}`)
+if (plugins.version !== 2) throw new Error(`unsupported plugins schema version: ${plugins.version}`)
 
 for (const url of Object.keys(details.sites)) {
   if (!/^https?:\/\//.test(url)) throw new Error(`details key must be a URL: ${url}`)

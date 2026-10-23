@@ -17,8 +17,9 @@ import { decodePng } from './png.mjs'
 
 const SELECTORS = {
   sites: ['.redaiNavCount', '.redaiNavGroupCount', '.redaiTabCount', '.redaiStepNum'],
-  plugins: ['.redaiRank', '.redaiStars', '.redaiPluginMeta', '.redaiFilterChip', '.redaiPluginNote'],
-  'plugin-detail': ['.redaiMetricValue', '.redaiStatusText', '.redaiHighlightNum'],
+  plugins: ['.redaiRankTopNum', '.redaiRankRowNum', '.redaiRankTopMeta', '.redaiRankRowMeta',
+    '.redaiRankSectionCount', '.redaiFilterChip'],
+  'plugin-detail': ['.redaiMetricValue', '.redaiMetricLabel'],
 }
 
 const pages = {

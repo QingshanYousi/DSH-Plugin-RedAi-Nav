@@ -92,10 +92,11 @@ const wantDetail = process.argv.includes('--detail')
 const wantPluginDetail = process.argv.includes('--plugin-detail')
 const widthArg = process.argv.indexOf('--width')
 const shellWidth = widthArg > -1 ? Number(process.argv[widthArg + 1]) || 1180 : 1180
-// `--id <plugin-id>` picks the plugin for `--plugin-detail`; the default has a
-// release, a homepage and caveats so every detail block is exercised.
+// `--id <owner/name>` picks the plugin for `--plugin-detail`; the default is the
+// first row of the board (rank 1 of the first category), which is what the
+// screenshot is meant to show.
 const idArg = process.argv.indexOf('--id')
-const pluginId = idArg > -1 ? process.argv[idArg + 1] : 'dsh-call-session'
+const pluginId = idArg > -1 ? process.argv[idArg + 1] : ''
 // Detail views are rendered by NavPage inside the page shell, so the standalone
 // preview has to supply the same wrapper or the sticky back control and the
 // max-width would be measured against the wrong box.
@@ -108,14 +109,17 @@ const shell = (node) => ({
 })
 let tree
 if (wantPluginDetail) {
-  const plugins = JSON.parse(readFileSync(join(root, 'data/plugins.json'), 'utf8'))
-  const ranked = plugins.plugins.map((row, index) => ({ ...row, rank: index + 1 }))
-  const plugin = ranked.find((row) => row.id === pluginId) || ranked[1]
+  const ranking = JSON.parse(readFileSync(join(root, 'data/plugins.json'), 'utf8'))
+  const rows = ranking.categories.flatMap((category) => category.items.map((item) => ({ category, item })))
+  const picked = rows.find((row) => row.item.full === pluginId || row.item.title === pluginId) || rows[0]
   tree = shell(exported.__components.PluginDetail({
-    plugin,
+    plugin: picked.item,
+    category: picked.category,
     t: props.t,
     onOpen: () => {},
     onBack: () => {},
+    copied: false,
+    onCopy: () => {},
   }))
 } else if (wantDetail) {
   const links = JSON.parse(readFileSync(join(root, 'data/links.json'), 'utf8'))

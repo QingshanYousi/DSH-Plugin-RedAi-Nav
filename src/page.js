@@ -110,7 +110,10 @@ function NavPage(props) {
   const [active, setActive] = React.useState(-1)
   const [armed, setArmed] = React.useState(false)
   const [tab, setTab] = React.useState('sites')
-  const [filter, setFilter] = React.useState('all')
+  // The board's own filters: which category is on screen, and whether the two
+  // folded categories (theme / fun) have been unfolded in the chip row.
+  const [category, setCategory] = React.useState('all')
+  const [expanded, setExpanded] = React.useState(false)
   const [copied, setCopied] = React.useState(false)
   const inputRef = React.useRef(null)
   const fileRef = React.useRef(null)
@@ -210,14 +213,21 @@ function NavPage(props) {
   const baseTotal = React.useMemo(() => uniqueCount(groups), [store])
 
   const needle = query.trim().toLowerCase()
-  // Archived entries sit at the bottom and ranks are renumbered after sorting.
-  const ranked = orderPlugins(PLUGINS.plugins, now)
-  const pluginMatches = needle ? ranked.filter((plugin) => pluginHaystack(plugin).includes(needle)) : ranked
-  // The host-surface filter is ANDed with the search, never a replacement for it.
-  const pluginRows = filter === 'all' ? pluginMatches : pluginMatches.filter((plugin) => hostOf(plugin) === filter)
-  const hostCount = (key) => (key === 'all'
-    ? pluginMatches.length
-    : pluginMatches.filter((plugin) => hostOf(plugin) === key).length)
+  // The board is read straight from the file: ranks are decided at build time,
+  // so nothing here sorts or renumbers. `sections` is what the query and the
+  // category chip leave standing.
+  const boardCategories = categoriesShown(PLUGINS, expanded)
+  const boardTotal = boardCategories.reduce((count, row) => count + (Number.isFinite(row.total) ? row.total : row.items.length), 0)
+  // The tab badge counts the rows the board actually carries (folded categories
+  // excluded), so it agrees with the header at rest and grows to the full
+  // ranking when 更多 is opened. `rankingCount` is the whole file.
+  const boardSize = boardCategories.reduce((count, row) => count + (Array.isArray(row.items) ? row.items.length : 0), 0)
+  const hiddenIds = PLUGINS.categories.filter((row) => row.hidden === true).map((row) => row.id)
+  const sections = boardCategories
+    .filter((row) => category === 'all' || row.id === category)
+    .map((row) => ({ category: row, items: itemsMatching(row, needle, english) }))
+    .filter((section) => section.items.length > 0)
+  const rankedShown = sections.reduce((count, section) => count + section.items.length, 0)
 
   const visible = React.useMemo(() => filterGroups(groups, needle), [needle, store])
   const flat = visible.reduce((list, group) => list.concat(group.links), [])
@@ -244,7 +254,7 @@ function NavPage(props) {
 
   const openPlugin = (plugin) => {
     rememberScroll()
-    setView({ kind: 'plugin', id: plugin.id })
+    setView({ kind: 'plugin', full: plugin.full })
   }
 
   const star = (link) => { update(toggleStar(store, link.url)) }
@@ -437,7 +447,7 @@ function NavPage(props) {
   }
 
   const countLabel = tab === 'plugins'
-    ? fill(t('plugin.count'), { n: pluginRows.length })
+    ? fill(t('plugin.count'), { n: rankedShown })
     : needle
       ? fill(t('countFiltered'), { n: total, total: baseTotal })
       : fill(t('count'), { n: total })
@@ -487,7 +497,7 @@ function NavPage(props) {
             : null,
         ],
       }),
-      jsx(Count, { key: 'count', n: tab === 'plugins' ? pluginRows.length : total, text: countLabel }),
+      jsx(Count, { key: 'count', n: tab === 'plugins' ? rankedShown : total, text: countLabel }),
       jsxs('div', {
         key: 'actions',
         className: 'redaiNavActions',
@@ -538,7 +548,7 @@ function NavPage(props) {
     className: 'redaiTabs',
     children: [
       tabButton('sites', t('tab.sites'), total, () => { setTab('sites'); setView(null) }),
-      tabButton('plugins', t('tab.plugins'), ranked.length, () => { setTab('plugins'); setView(null) }),
+      tabButton('plugins', t('tab.plugins'), boardSize, () => { setTab('plugins'); setView(null) }),
     ],
   })
 
@@ -642,42 +652,66 @@ function NavPage(props) {
     })
   })
 
-  const filterChips = FILTER_KEYS.map((key) => jsx('button', {
+  // One chip per category, in the file's own order, plus the fold control.
+  // The count on a chip is the category's size in the source list, not the
+  // number of rows the board shows — "图标 94" is a fact, "图标 10" is a view.
+  const catChip = (key, label, active, onClick, extra) => jsx('button', {
     key,
     type: 'button',
-    className: 'redaiFilterChip',
-    'aria-pressed': filter === key ? 'true' : 'false',
-    onClick: () => setFilter(key),
-    children: key === 'all'
-      ? fill(t('plugin.filter.all'), { n: pluginMatches.length })
-      : t('plugin.host.' + key) + ' ' + fill(t('plugin.filter.count'), { n: hostCount(key) }),
-  }))
+    className: 'redaiFilterChip' + (extra ? ' ' + extra : ''),
+    'aria-pressed': active ? 'true' : 'false',
+    onClick,
+    children: label,
+  })
+  const catChips = [
+    catChip('all', fill(t('plugin.filterAll'), { n: boardTotal }), category === 'all', () => setCategory('all')),
+    ...boardCategories.map((row) => catChip(
+      row.id,
+      categoryName(t, row, english) + ' ' + (Number.isFinite(row.total) ? row.total : row.items.length),
+      category === row.id,
+      () => setCategory(row.id),
+    )),
+    catChip('more', expanded ? t('plugin.less') : t('plugin.more'), false, () => {
+      const next = !expanded
+      setExpanded(next)
+      // Folding away the category you are looking at would leave a blank board.
+      if (!next && hiddenIds.indexOf(category) > -1) setCategory('all')
+    }, 'redaiCatMore'),
+  ]
+
+  const currentCategory = category === 'all' ? null : boardCategories.find((row) => row.id === category) || null
+  const pluginEmpty = category === 'all' || !currentCategory
+    ? t('plugin.empty')
+    : fill(t('plugin.emptyCategory'), { name: categoryName(t, currentCategory, english) })
 
   const pluginBody = jsxs('div', {
     key: 'plugins',
     children: [
-      jsxs('div', {
-        key: 'note',
-        className: 'redaiPluginNote',
-        children: [
-          jsx('span', { key: 'u', children: fill(t('plugin.updated'), { date: PLUGINS.updatedAt }) }),
-          jsx('span', { key: 'm', children: t('plugin.method') }),
-        ],
-      }),
+      // One line, above everything: how the board is ordered and how old it is.
+      jsx('div', { key: 'basis', className: 'redaiRankBasis', children: sortBasis(t, PLUGINS.updatedAt) }),
       jsx('div', {
         key: 'filter',
-        className: 'redaiPluginFilter',
+        className: 'redaiCatBar',
         role: 'group',
         'aria-label': t('plugin.filter'),
-        children: filterChips,
+        children: catChips,
       }),
-      pluginRows.length > 0
+      sections.length > 0
         ? jsx('div', {
-          key: 'list',
-          className: 'redaiPluginList',
-          children: pluginRows.map((plugin) => jsx(PluginCard, { key: plugin.id, plugin, t, onOpen: openPlugin })),
+          key: 'board',
+          className: 'redaiRankBoard',
+          children: sections.map((section) => jsx(RankSection, {
+            key: section.category.id,
+            category: section.category,
+            items: section.items,
+            t,
+            english,
+            onSelect: openPlugin,
+            onOpen: openUrl,
+            listUrl: PLUGINS.source.list,
+          })),
         })
-        : jsx('div', { key: 'empty', className: 'redaiNavEmpty', children: t('plugin.empty') }),
+        : jsx('div', { key: 'empty', className: 'redaiNavEmpty', children: pluginEmpty }),
     ],
   })
 
@@ -725,11 +759,13 @@ function NavPage(props) {
     children: jsx('div', { className: 'redaiDetailShell', children: node }),
   })
 
-  const pluginRow = view && view.kind === 'plugin' ? ranked.find((row) => row.id === view.id) : null
+  const pluginRow = view && view.kind === 'plugin' ? findPlugin(PLUGINS, view.full) : null
   if (pluginRow) {
     return detailShell(jsx(PluginDetail, {
-      plugin: pluginRow,
+      plugin: pluginRow.item,
+      category: pluginRow.category,
       t,
+      english,
       copied,
       onCopy: copyInstall,
       onOpen: openUrl,
@@ -846,19 +882,32 @@ exports.TOAST_MS = TOAST_MS
 exports.CONFIRM_MS = CONFIRM_MS
 exports.COPIED_MS = COPIED_MS
 // Exposed for the offline test and preview harnesses (test/, scripts/preview.mjs).
+// Exposed for the offline test and preview harnesses (test/, scripts/preview.mjs,
+// docs/review/tools). `rankingCount` answers "how many rows the file holds";
+// `categoriesShown` answers "how many the board renders folded" — the two
+// differ by the two hidden categories, and both are asserted.
 exports.__components = {
   SiteCard,
   SiteDetail,
   Banner,
   Count,
   Toast,
-  PluginCard,
+  RankTop,
+  RankRow,
+  RankSection,
   PluginDetail,
   formatStars,
-  orderPlugins,
-  maintainedOf,
-  categoryLabel,
-  hostOf,
+  rankLabel,
+  shortDate,
+  categoryName,
+  categoriesShown,
+  rankingCount,
+  itemsMatching,
+  pluginHaystack,
+  findPlugin,
+  sortBasis,
+  installCommand,
+  whyHere,
   urlHost,
 }
 // Store helpers are exported for the offline test harness (test/smoke.mjs).

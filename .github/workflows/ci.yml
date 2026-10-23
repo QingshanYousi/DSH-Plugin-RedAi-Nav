@@ -31,6 +31,9 @@ jobs:
       - name: 产物必须与 src/ 同步（改了源码却没 build 会红）
         run: node scripts/build.mjs --check
 
+      - name: 排行榜数据必须自洽（schema / 排序 / rank 连续，全程离线）
+        run: node scripts/build-ranking.mjs --offline
+
       - name: 内联数据必须与 data/*.json 同步（改了数据却没跑 data 会红）
         run: node scripts/embed-data.mjs --check
 

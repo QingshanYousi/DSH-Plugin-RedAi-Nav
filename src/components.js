@@ -152,6 +152,8 @@ const cssSites = [
   '.redaiLink{font-size:12px;line-height:18px;color:var(--dsw-alias-link,var(--dsw-alias-brand-primary));text-decoration:none;padding:2px 0}.redaiLink:hover{text-decoration:underline;text-underline-offset:3px;text-decoration-style:dotted}',
   '.redaiTabs{display:flex;gap:2px;padding:8px 24px 0;border-bottom:.5px solid var(--dsw-alias-border-l1)}.redaiTab{position:relative;height:30px;padding:0 10px;font:inherit;font-size:13px;line-height:30px;color:var(--dsw-alias-label-secondary);background:transparent;border:0;border-radius:6px 6px 0 0;cursor:pointer}',
   '.redaiTab:hover{background:var(--dsw-alias-interactive-bg-hover)}.redaiTab.on{color:var(--dsw-alias-label-primary);font-weight:600}',
+  // Same reason as the filter chips: the UA outline is invisible on the dark page.
+  '.redaiTab:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:-2px}',
   '.redaiTab.on::after{content:"";position:absolute;left:8px;right:8px;bottom:-.5px;height:2px;background:var(--dsw-alias-brand-primary);border-radius:1px}.redaiTabCount{margin-left:5px;font-size:11px;font-weight:400;color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}',
   '@keyframes redaiOdo{from{transform:translateY(100%);opacity:.35}to{transform:none;opacity:1}}@keyframes redaiRail{from{transform:scaleY(.2);opacity:0}to{transform:scaleY(1);opacity:1}}',
   '@keyframes redaiStarPop{0%{transform:scale(.86)}55%{transform:scale(1.14)}100%{transform:scale(1)}}@keyframes redaiDust{0%{opacity:.95;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.3)}}',

@@ -153,9 +153,22 @@ export function renderPage({ mode = 'sites', width = 1180 } = {}) {
       },
     }
   } else if (mode === 'plugin-detail') {
-    const plugins = JSON.parse(readFileSync(join(ROOT, 'data/plugins.json'), 'utf8'))
-    const plugin = plugins.plugins.find((row) => row.id === 'dsh-call-session') || plugins.plugins[1]
-    tree = shell(bundle.__components.PluginDetail({ plugin, t, onOpen: () => {}, onBack: () => {}, copied: false, onCopy: () => {} }))
+    const ranking = JSON.parse(readFileSync(join(ROOT, 'data/plugins.json'), 'utf8'))
+    const rows = ranking.categories.flatMap((category) => category.items.map((item) => ({ category, item })))
+    // `--id` wins, else the first row of the board: the fixture must never point
+    // at a repo the ranking has since dropped.
+    const idAt = process.argv.indexOf('--id')
+    const wanted = idAt > -1 ? process.argv[idAt + 1] : ''
+    const picked = rows.find((row) => row.item.full === wanted || row.item.title === wanted) || rows[0]
+    tree = shell(bundle.__components.PluginDetail({
+      plugin: picked.item,
+      category: picked.category,
+      t,
+      onOpen: () => {},
+      onBack: () => {},
+      copied: false,
+      onCopy: () => {},
+    }))
   } else {
     tree = page.component(props)
   }
