@@ -285,8 +285,35 @@ const detailNodes = flatten(SiteDetail({
   onBack: () => {},
 }))
 assert.equal(byClass(detailNodes, 'redaiDetailTitle')[0].props.children, detailLink.title)
-assert.equal(byClass(detailNodes, 'redaiSection').length, 4, 'intro, scenarios, steps, links')
-assert.ok(byClass(detailNodes, 'redaiStep').length === details.sites[detailUrl].steps.length)
+// v2 turns the detail page into a reading document: one section per data block
+// that is actually present, a sticky contents list that mirrors them, and a
+// foot note saying when the facts were compiled. The section order is the
+// judgement order — what it is, what it does, what it cannot do, how to start.
+const detailData = details.sites[detailUrl]
+const expectedSections = ['intro', 'facts', 'capabilities', 'limits', 'steps', 'modes', 'scenarios', 'models', 'highlights', 'links']
+  .filter((key) => {
+    const value = detailData[key]
+    return Array.isArray(value) && value.length > 0
+  })
+const docSections = byClass(detailNodes, 'redaiDocSection')
+assert.equal(docSections.length, expectedSections.length, 'one section per populated data block')
+assert.deepEqual(
+  docSections.map((node) => String(node.props.id).replace('redai-sec-', '')),
+  expectedSections,
+  'sections render in judgement order',
+)
+const tocLinks = byClass(detailNodes, 'redaiTocLink')
+assert.equal(tocLinks.length, expectedSections.length, 'the contents list mirrors the sections')
+assert.deepEqual(
+  tocLinks.map((node) => node.props.href),
+  expectedSections.map((key) => '#redai-sec-' + key),
+  'each contents entry targets its own section',
+)
+assert.ok(byClass(detailNodes, 'redaiStep').length === detailData.steps.length)
+assert.equal(byClass(detailNodes, 'redaiFactCell').length, detailData.facts.length, 'one cell per key fact')
+assert.equal(byClass(detailNodes, 'redaiLimitItem').length, detailData.limits.length, 'limitations are not dropped')
+assert.equal(byClass(detailNodes, 'redaiModelRow').length, detailData.models.length)
+assert.equal(byClass(detailNodes, 'redaiDocFoot').length, 1, 'the page says when its facts were compiled')
 
 // ── plugin ranking: v2 data contract ───────────────────────────────────────
 // v1 was twelve hand-written cards with a curated `why` / `highlights` /

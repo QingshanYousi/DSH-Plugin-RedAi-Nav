@@ -137,6 +137,10 @@ const cssSites = [
     // sticky back control lands on the same axis in both views.
     // Detail pages reuse the list's scroll container and padding rhythm, so the
   '.redaiBannerClose:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}.redaiDetailShell{padding:0 24px 40px;max-width:760px}',
+  // Site details carry a sticky contents list, so they get a wider shell and
+  // become a query container. Keyed off the contents list itself rather than a
+  // flag, so any renderer that emits the document gets the same layout.
+  '.redaiDetailShell:has(.redaiDocToc){max-width:980px;container-type:inline-size}',
   '.redaiDetail{flex:1 1 auto;min-width:0;padding-top:8px}.redaiDetail>.redaiGhost{position:sticky;top:0;z-index:2;background:var(--dsw-alias-bg-base);margin-left:-2px}',
   '.redaiDetailTop{display:flex;align-items:flex-start;gap:12px}.redaiDetailIcon{flex:none;display:grid;place-items:center;width:46px;height:46px;border-radius:12px;font-size:20px;font-weight:600;color:#fff}',
   '.redaiDetailHead{flex:1;min-width:0}.redaiDetailTitle{font-size:17px;line-height:24px;font-weight:600}',
@@ -149,6 +153,51 @@ const cssSites = [
   '.redaiScenarioIcon{flex:none;width:20px;font-size:14px;line-height:20px}.redaiScenarioTitle{font-size:13px;line-height:20px;font-weight:500}',
   '.redaiScenarioDesc{margin-top:1px;font-size:12px;line-height:19px;color:var(--dsw-alias-label-tertiary)}.redaiStep{position:relative;margin:0 0 6px;padding-left:22px;font-size:13px;line-height:21px;color:var(--dsw-alias-label-secondary)}',
   '.redaiStepNum{position:absolute;left:0;top:1px;display:grid;place-items:center;width:16px;height:16px;font-size:10px;line-height:1;color:var(--dsw-alias-label-tertiary);border:.5px solid var(--dsw-alias-border-l2,rgba(0,0,0,.18));border-radius:50%;font-variant-numeric:tabular-nums}.redaiLinks{display:flex;flex-wrap:wrap;gap:8px}',
+  // ── Site detail as a reading document ──────────────────────────────────────
+  // The page answers one question — "can this solve my problem?" — so the body
+  // is a single column of sections in judgement order, with a sticky contents
+  // list that only appears when the panel is wide enough to afford it.
+  '.redaiDocHost{font-size:12px;line-height:18px;color:var(--dsw-alias-label-tertiary)}',
+  '.redaiDoc{display:grid;grid-template-columns:minmax(0,1fr);gap:0;margin-top:10px}',
+  '.redaiDocToc{display:none}',
+  '.redaiDocBody{min-width:0}',
+  '.redaiDocSection{padding-top:20px;scroll-margin-top:44px}',
+  '.redaiDocSection+.redaiDocSection{margin-top:2px;border-top:.5px solid var(--dsw-alias-border-l1)}',
+  '.redaiDocH2{margin:0 0 10px;font-size:13px;line-height:20px;font-weight:500;color:var(--dsw-alias-label-primary)}',
+  '.redaiDocP{margin:0 0 10px;font-size:13px;line-height:23px;color:var(--dsw-alias-label-secondary)}',
+  '.redaiDocP.lead{font-size:14px;line-height:24px;color:var(--dsw-alias-label-primary)}',
+  '.redaiFactGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;margin:0;background:var(--dsw-alias-border-l1);border:.5px solid var(--dsw-alias-border-l1);border-radius:8px;overflow:hidden}',
+  '.redaiFactCell{margin:0;padding:9px 12px;background:var(--dsw-alias-bg-base)}',
+  '.redaiFactLabel{margin:0;font-size:10px;line-height:15px;letter-spacing:.05em;color:var(--dsw-alias-label-tertiary)}',
+  '.redaiFactValue{margin:2px 0 0;font-size:13px;line-height:19px;color:var(--dsw-alias-label-primary)}',
+  '.redaiCapList{display:flex;flex-direction:column;gap:2px}',
+  '.redaiCapRow{padding:7px 0}',
+  '.redaiCapGroup{font-size:12px;line-height:18px;font-weight:500;color:var(--dsw-alias-label-primary)}',
+  '.redaiCapItems{display:flex;flex-wrap:wrap;gap:3px 16px;margin:3px 0 0;padding:0;list-style:none}',
+  '.redaiCapItem{position:relative;padding-left:11px;font-size:12px;line-height:20px;color:var(--dsw-alias-label-secondary)}',
+  '.redaiCapItem::before{content:"";position:absolute;left:0;top:9px;width:4px;height:4px;border-radius:50%;background:var(--dsw-alias-border-l2,rgba(0,0,0,.2))}',
+  '.redaiLimitList{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}',
+  '.redaiLimitItem{position:relative;padding-left:14px;font-size:12px;line-height:20px;color:var(--dsw-alias-label-secondary)}',
+  '.redaiLimitItem::before{content:"";position:absolute;left:2px;top:9px;width:5px;height:1.5px;border-radius:1px;background:var(--dsw-alias-state-warn-label,#d33)}',
+  '.redaiModeList{display:flex;flex-direction:column}',
+  '.redaiModeRow{display:grid;grid-template-columns:96px minmax(0,1fr);gap:12px;padding:5px 0;font-size:12px;line-height:19px}',
+  '.redaiModeName{font-weight:500;color:var(--dsw-alias-label-primary)}',
+  '.redaiModeDesc{color:var(--dsw-alias-label-secondary)}',
+  '.redaiModelList{display:flex;flex-direction:column}',
+  '.redaiModelRow{display:grid;grid-template-columns:minmax(0,150px) auto minmax(0,1fr);gap:10px;align-items:baseline;padding:7px 0;border-top:.5px solid var(--dsw-alias-border-l1)}',
+  '.redaiModelRow:first-child{border-top:0;padding-top:0}',
+  '.redaiModelName{font-size:12px;line-height:19px;font-weight:500;color:var(--dsw-alias-label-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+  '.redaiModelKind{padding:0 5px;font-size:10px;line-height:15px;border-radius:4px;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-layer-1);box-shadow:inset 0 0 0 .5px var(--dsw-alias-border-l1)}',
+  '.redaiModelNote{font-size:12px;line-height:19px;color:var(--dsw-alias-label-tertiary)}',
+  '.redaiNote{position:relative;margin:0 0 7px;padding-left:22px;font-size:12px;line-height:21px;color:var(--dsw-alias-label-secondary)}',
+  '.redaiNoteNum{position:absolute;left:0;top:2px;width:16px;font-size:10px;line-height:16px;text-align:center;color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}',
+  '.redaiDocFoot{margin-top:26px;padding-top:12px;border-top:.5px solid var(--dsw-alias-border-l1);font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary)}',
+  '.redaiTocTitle{margin-bottom:6px;font-size:10px;line-height:15px;letter-spacing:.06em;color:var(--dsw-alias-label-tertiary)}',
+  '.redaiTocLink{display:block;padding:3px 0 3px 9px;font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary);text-decoration:none;border-left:2px solid transparent}',
+  '.redaiTocLink:hover{color:var(--dsw-alias-label-primary);border-left-color:var(--dsw-alias-border-l2,rgba(0,0,0,.2))}',
+  '.redaiTocLink:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}',
+  '@container (min-width:720px){.redaiDoc{grid-template-columns:156px minmax(0,1fr);gap:32px}.redaiDocToc{display:block;position:sticky;top:44px;align-self:start}}',
+  '@container (max-width:520px){.redaiModeRow{grid-template-columns:minmax(0,1fr);gap:1px}.redaiModelRow{grid-template-columns:minmax(0,1fr) auto;gap:2px 10px}.redaiModelNote{grid-column:1 / -1}}',
   '.redaiLink{font-size:12px;line-height:18px;color:var(--dsw-alias-link,var(--dsw-alias-brand-primary));text-decoration:none;padding:2px 0}.redaiLink:hover{text-decoration:underline;text-underline-offset:3px;text-decoration-style:dotted}',
   '.redaiTabs{display:flex;gap:2px;padding:8px 24px 0;border-bottom:.5px solid var(--dsw-alias-border-l1)}.redaiTab{position:relative;height:30px;padding:0 10px;font:inherit;font-size:13px;line-height:30px;color:var(--dsw-alias-label-secondary);background:transparent;border:0;border-radius:6px 6px 0 0;cursor:pointer}',
   '.redaiTab:hover{background:var(--dsw-alias-interactive-bg-hover)}.redaiTab.on{color:var(--dsw-alias-label-primary);font-weight:600}',
@@ -379,48 +428,167 @@ function detailSection(key, title, body, titleClass) {
 /** Detail page for a site that ships editorial content. */
 function SiteDetail({ link, detail, t, starred, onStar, onVisit, onBack }) {
   const intro = detail.intro || []
-  const scenarios = detail.scenarios || []
+  const facts = detail.facts || []
+  const capabilities = detail.capabilities || []
+  const limits = detail.limits || []
   const steps = detail.steps || []
+  const modes = detail.modes || []
+  const scenarios = detail.scenarios || []
+  const models = detail.models || []
+  const highlights = detail.highlights || []
   const links = detail.links || []
   const tags = statusTags(link, t, Date.now())
 
-  const sections = []
-  if (intro.length > 0) {
-    sections.push(detailSection('intro', t('detail.intro'),
-      intro.map((text, index) => jsx('p', { key: 'p' + index, className: 'redaiP', children: text }))))
+  const body = []
+  const toc = []
+  const addSection = (key, title, node) => {
+    toc.push({ key, title })
+    body.push(jsxs('section', {
+      key,
+      id: 'redai-sec-' + key,
+      className: 'redaiDocSection',
+      children: [
+        jsx('h2', { key: 'h', className: 'redaiDocH2', children: title }),
+        node,
+      ],
+    }))
   }
-  if (scenarios.length > 0) {
-    sections.push(detailSection('scenarios', t('detail.scenarios'), scenarios.map((row, index) => jsxs('div', {
+  /** Scrolls the section into view without touching the URL hash. */
+  const jump = (event, key) => {
+    event.preventDefault()
+    if (typeof document === 'undefined') return
+    const node = document.getElementById('redai-sec-' + key)
+    if (node && typeof node.scrollIntoView === 'function') node.scrollIntoView({ block: 'start' })
+  }
+
+  if (intro.length > 0) {
+    addSection('intro', t('detail.intro'), intro.map((text, index) => jsx('p', {
+      key: 'p' + index,
+      className: index === 0 ? 'redaiDocP lead' : 'redaiDocP',
+      children: text,
+    })))
+  }
+
+  if (facts.length > 0) {
+    addSection('facts', t('detail.facts'), jsx('dl', {
+      className: 'redaiFactGrid',
+      children: facts.map((row, index) => jsxs('div', {
+        key: 'f' + index,
+        className: 'redaiFactCell',
+        children: [
+          jsx('dt', { key: 'l', className: 'redaiFactLabel', children: row.label }),
+          jsx('dd', { key: 'v', className: 'redaiFactValue', children: row.value }),
+        ],
+      })),
+    }))
+  }
+
+  if (capabilities.length > 0) {
+    addSection('capabilities', t('detail.capabilities'), jsx('div', {
+      className: 'redaiCapList',
+      children: capabilities.map((group, index) => jsxs('div', {
+        key: 'g' + index,
+        className: 'redaiCapRow',
+        children: [
+          jsx('div', { key: 'n', className: 'redaiCapGroup', children: group.group }),
+          jsx('ul', {
+            key: 'u',
+            className: 'redaiCapItems',
+            children: (group.items || []).map((text, i) => jsx('li', {
+              key: 'i' + i,
+              className: 'redaiCapItem',
+              children: text,
+            })),
+          }),
+        ],
+      })),
+    }))
+  }
+
+  if (limits.length > 0) {
+    addSection('limits', t('detail.limits'), jsx('ul', {
+      className: 'redaiLimitList',
+      children: limits.map((text, index) => jsx('li', {
+        key: 'l' + index,
+        className: 'redaiLimitItem',
+        children: text,
+      })),
+    }))
+  }
+
+  if (steps.length > 0) {
+    addSection('steps', t('detail.steps'), steps.map((text, index) => jsxs('p', {
       key: 's' + index,
+      className: 'redaiStep',
+      children: [
+        jsx('span', { key: 'n', className: 'redaiStepNum', children: String(index + 1) }),
+        text,
+      ],
+    })))
+  }
+
+  if (modes.length > 0) {
+    addSection('modes', t('detail.modes'), jsx('div', {
+      className: 'redaiModeList',
+      children: modes.map((row, index) => jsxs('div', {
+        key: 'm' + index,
+        className: 'redaiModeRow',
+        children: [
+          jsx('div', { key: 'n', className: 'redaiModeName', children: row.name }),
+          jsx('div', { key: 'd', className: 'redaiModeDesc', children: row.desc }),
+        ],
+      })),
+    }))
+  }
+
+  if (scenarios.length > 0) {
+    addSection('scenarios', t('detail.scenarios'), scenarios.map((row, index) => jsxs('div', {
+      key: 'c' + index,
       className: 'redaiScenario',
       children: [
         jsx('div', { key: 'i', className: 'redaiScenarioIcon', children: row.icon || '•' }),
         jsxs('div', {
-          key: 'c',
+          key: 'b',
           children: [
             jsx('div', { key: 't', className: 'redaiScenarioTitle', children: row.title }),
             jsx('div', { key: 'd', className: 'redaiScenarioDesc', children: row.desc }),
           ],
         }),
       ],
-    }))))
+    })))
   }
-  if (steps.length > 0) {
-    sections.push(detailSection('steps', t('detail.steps'), steps.map((text, index) => jsxs('p', {
-      key: 'st' + index,
-      className: 'redaiStep',
+
+  if (models.length > 0) {
+    addSection('models', t('detail.models'), jsx('div', {
+      className: 'redaiModelList',
+      children: models.map((row, index) => jsxs('div', {
+        key: 'o' + index,
+        className: 'redaiModelRow',
+        children: [
+          jsx('div', { key: 'n', className: 'redaiModelName', children: row.name }),
+          row.kind ? jsx('span', { key: 'k', className: 'redaiModelKind', children: row.kind }) : null,
+          jsx('div', { key: 'd', className: 'redaiModelNote', children: row.note }),
+        ],
+      })),
+    }))
+  }
+
+  if (highlights.length > 0) {
+    addSection('highlights', t('detail.highlights'), highlights.map((text, index) => jsxs('p', {
+      key: 'h' + index,
+      className: 'redaiNote',
       children: [
-        jsx('span', { key: 'n', className: 'redaiStepNum', children: String(index + 1) }),
+        jsx('span', { key: 'n', className: 'redaiNoteNum', children: String(index + 1) }),
         text,
       ],
-    }))))
+    })))
   }
+
   if (links.length > 0) {
-    sections.push(detailSection('links', t('detail.links'), [jsx('div', {
-      key: 'l',
+    addSection('links', t('detail.links'), jsx('div', {
       className: 'redaiLinks',
-      children: links.map((row) => jsx('a', {
-        key: row.url,
+      children: links.map((row, index) => jsx('a', {
+        key: 'l' + index,
         className: 'redaiLink',
         href: row.url,
         onClick: (event) => {
@@ -429,7 +597,7 @@ function SiteDetail({ link, detail, t, starred, onStar, onVisit, onBack }) {
         },
         children: row.label,
       })),
-    })]))
+    }))
   }
 
   return jsxs('div', {
@@ -496,13 +664,40 @@ function SiteDetail({ link, detail, t, starred, onStar, onVisit, onBack }) {
           }),
           jsx('span', {
             key: 'host',
-            className: 'redaiP',
-            style: { margin: 0 },
+            className: 'redaiDocHost',
             children: urlHost(link.url),
           }),
         ],
       }),
-      ...sections,
+      jsxs('div', {
+        key: 'doc',
+        className: 'redaiDoc',
+        children: [
+          jsxs('nav', {
+            key: 'toc',
+            className: 'redaiDocToc',
+            'aria-label': t('detail.toc'),
+            children: [
+              jsx('div', { key: 'l', className: 'redaiTocTitle', children: t('detail.toc') }),
+              ...toc.map((row) => jsx('a', {
+                key: row.key,
+                className: 'redaiTocLink',
+                href: '#redai-sec-' + row.key,
+                onClick: (event) => jump(event, row.key),
+                children: row.title,
+              })),
+            ],
+          }),
+          jsx('div', { key: 'body', className: 'redaiDocBody', children: body }),
+        ],
+      }),
+      detail.asOf
+        ? jsx('div', {
+          key: 'asof',
+          className: 'redaiDocFoot',
+          children: fill(t('detail.asOf'), { date: detail.asOf }),
+        })
+        : null,
     ],
   })
 }
