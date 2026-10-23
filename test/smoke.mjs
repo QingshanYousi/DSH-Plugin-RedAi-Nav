@@ -323,6 +323,76 @@ assert.equal(byClassIn(detailNodes, 'redaiModelRow').length, detailData.models.l
 assert.equal(byClassIn(detailNodes, 'redaiInfoCell').length, 4, 'the record section always answers four questions')
 assert.equal(byClassIn(detailNodes, 'redaiDocFoot').length, 1, 'the page says when its facts were compiled')
 
+// ── detail chrome: breadcrumb, group pager, contribute link ────────────────
+// Borrowed from the docs quickstart: say where you are, let people keep reading
+// in order, and give the skeleton pages one honest way to stop being skeletons.
+const navLink = (title, url) => ({ title, url, desc: title + ' 的描述' })
+// Local copy of collectText (defined further down) so this block can sit with
+// the other detail assertions instead of 300 lines away from them.
+const readText = (node, out = []) => {
+  if (node === null || node === undefined || node === false) return out
+  if (Array.isArray(node)) { node.forEach((child) => readText(child, out)); return out }
+  if (typeof node !== 'object') { out.push(String(node)); return out }
+  if (node.props && node.props.children !== undefined) readText(node.props.children, out)
+  return out
+}
+const prevLink = navLink('上一个站', 'http://prev.test/')
+const nextLink = navLink('下一个站', 'http://next.test/')
+const midLink = navLink('当前站', 'http://mid.test/')
+const navNodes = flatten(SiteDetail({
+  link: midLink,
+  detail: {},
+  groupTitle: 'AI 助手',
+  siblings: [prevLink, nextLink],
+  neighbours: { prev: prevLink, next: nextLink },
+  t: injected.t,
+  starred: false,
+  onStar: () => {},
+  onVisit: () => {},
+  onDetail: () => {},
+  onBack: () => {},
+}))
+
+assert.equal(byClassIn(navNodes, 'redaiCrumb').length, 1, 'the page says which list it belongs to')
+assert.deepEqual(readText(byClassIn(navNodes, 'redaiCrumb')[0]).filter(Boolean), ['网址导航', '/', 'AI 助手'],
+  'the breadcrumb is the root, a separator and the group name')
+
+const pager = byClassIn(navNodes, 'redaiPager')
+assert.equal(pager.length, 1, 'a page inside a group offers prev/next')
+const pagerButtons = byClassIn(navNodes, 'redaiPagerBtn')
+assert.equal(pagerButtons.length, 2, 'both directions are present in the middle of a group')
+assert.ok(readText(pagerButtons[0]).join('').indexOf('上一个站') > -1, 'prev names its target')
+assert.ok(readText(pagerButtons[1]).join('').indexOf('下一个站') > -1, 'next names its target')
+
+// ends of the group: only one direction, and the empty slot keeps the grid stable
+const firstNodes = flatten(SiteDetail({
+  link: prevLink, detail: {}, groupTitle: 'AI 助手', siblings: [nextLink],
+  neighbours: { prev: null, next: nextLink },
+  t: injected.t, starred: false, onStar: () => {}, onVisit: () => {}, onDetail: () => {}, onBack: () => {},
+}))
+assert.equal(byClassIn(firstNodes, 'redaiPagerBtn').length, 1, 'the first site of a group has no prev')
+assert.equal(byClassIn(firstNodes, 'redaiPagerSlot').length, 1, 'the empty side keeps its slot')
+
+// paging goes through the detail page, never straight out to the site
+const paged = []
+flatten(SiteDetail({
+  link: midLink, detail: {}, groupTitle: 'AI 助手', siblings: [prevLink, nextLink],
+  neighbours: { prev: prevLink, next: nextLink },
+  t: injected.t, starred: false, onStar: () => {}, onVisit: (url) => paged.push('visit:' + url),
+  onDetail: (row) => paged.push('detail:' + row.title), onBack: () => {},
+}))
+  .filter((node) => node && node.props && node.props.className === 'redaiPagerBtn')[0]
+  .props.onClick()
+assert.deepEqual(paged, ['detail:上一个站'], 'paging opens the neighbour page, it does not leave the panel')
+
+// skeleton pages admit they are skeletons and point at the data file
+const contribute = byClassIn(navNodes, 'redaiContribute')
+assert.equal(contribute.length, 1, 'a page without a write-up offers a way to add one')
+assert.ok(String(contribute[0].props.children.props.href).indexOf('data/details.json') > -1,
+  'the contribute link points at the data file, not a blank issue')
+assert.equal(byClassIn(detailNodes, 'redaiContribute').length, 0,
+  'a page that already has a write-up does not ask for one')
+
 // ── v0.9.2: a site with no editorial record still gets the same page ─────────
 // The skeleton is what makes ⓘ meaningful on all 88 cards, so it is checked from
 // the outside: a fake URL, an empty detail object, an empty group — the three
@@ -777,8 +847,13 @@ assert.equal(byClass(topNodes, 'redaiRankTopTitle')[0].props.children, topRow.it
 assert.equal(byClass(topNodes, 'redaiRankTopDesc')[0].props.children, topRow.item.desc)
 const topMeta = String(byClass(topNodes, 'redaiRankTopMeta')[0].props.children)
 assert.ok(topMeta.indexOf(formatStars(topRow.item.stars) + ' ★') > -1, 'the standing card prints its stars')
-assert.equal(topMeta, formatStars(topRow.item.stars) + ' ★ · ' + shortDate(topRow.item.pushed),
-  'the standing card prints stars and a short date — same shape as a row, no sentence')
+// Language joined the meta when the topic page became the reference: it is the
+// field a reader needs before installing, so it sits with the numbers.
+const topMetaParts = [formatStars(topRow.item.stars) + ' ★']
+if (topRow.item.language) topMetaParts.push(topRow.item.language)
+topMetaParts.push(shortDate(topRow.item.pushed))
+assert.equal(topMeta, topMetaParts.join(' · '),
+  'the standing card prints stars, language and a short date — same shape as a row, no sentence')
 assert.equal(topMeta.indexOf(dict['plugin.tagged']), -1,
   'the declared state is a badge next to the name, not a second mention in the meta')
 
@@ -792,6 +867,8 @@ assert.ok(collectText(byClass(rowNodes, 'redaiRankRowMeta')[0]).join('').indexOf
   'a row prints its stars')
 assert.ok(collectText(byClass(rowNodes, 'redaiRankRowDate')[0]).join('').indexOf(shortDate(rowItem.pushed)) > -1,
   'a row prints the last commit as MM-DD')
+assert.equal(byClass(rowNodes, 'redaiRankRowLang')[0].props.children, rowItem.language,
+  'a row prints the language, the way a topic page does')
 
 // clicking a rank opens the detail page, never the repository behind it
 const selectedRanks = []

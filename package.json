@@ -1,6 +1,6 @@
 {
   "name": "dsh-plugin-redai-nav",
-  "version": "0.9.3",
+  "version": "0.9.4",
   "description": "RedAI · 网址导航 — a bookmarks panel for DeepSeek Harness: a sidebar entry and a searchable site directory, installed and removed as an ordinary bundle plugin.",
   "type": "module",
   "license": "MIT",

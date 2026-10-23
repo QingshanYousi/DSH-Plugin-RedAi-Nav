@@ -173,11 +173,20 @@ export function renderPage({ mode = 'sites', width = 1180, site = '', solo = fal
     // A caller can measure several variants in one process, so each gets its own
     // file instead of overwriting the previous one.
     fileTag = wantSolo ? '-solo' : (url === Object.keys(details.sites)[0] ? '' : '-' + url.replace(/^https?:\/\//, '').replace(/[^\w]+/g, '-').replace(/-+$/, ''))
+    // Same derivation as page.js, so the pager is measured where it really sits.
+    const at = group ? group.links.findIndex((row) => row.url === url) : -1
+    const neighbours = group && !wantSolo && at > -1
+      ? {
+        prev: at > 0 ? group.links[at - 1] : null,
+        next: at < group.links.length - 1 ? group.links[at + 1] : null,
+      }
+      : null
     tree = shell(bundle.__components.SiteDetail({
       link,
       detail: details.sites[url] || {},
       groupTitle: group ? group.title : '',
       siblings: group && !wantSolo ? group.links : [link],
+      neighbours,
       t,
       starred: false,
       onStar: () => {},

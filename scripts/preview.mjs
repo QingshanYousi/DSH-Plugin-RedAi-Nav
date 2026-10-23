@@ -143,11 +143,21 @@ if (wantPluginDetail) {
   const link = links.groups.flatMap((group) => group.links).find((row) => row.url === url)
   if (!link) throw new Error('no such site in data/links.json: ' + url)
   const group = links.groups.find((row) => row.links.some((site) => site.url === url)) || null
+  // page.js derives prev/next from the group order; the fixture must do the same
+  // or the screenshot shows a layout the app never renders.
+  const at = group ? group.links.findIndex((row) => row.url === url) : -1
+  const neighbours = group && !wantSolo && at > -1
+    ? {
+      prev: at > 0 ? group.links[at - 1] : null,
+      next: at < group.links.length - 1 ? group.links[at + 1] : null,
+    }
+    : null
   tree = shell(exported.__components.SiteDetail({
     link,
     detail: details.sites[url] || {},
     groupTitle: group ? group.title : '',
     siblings: group && !wantSolo ? group.links : [link],
+    neighbours,
     t: props.t,
     starred: true,
     onStar: () => {},

@@ -240,6 +240,22 @@ const cssSites = [
   '.redaiNote{position:relative;margin:0 0 7px;padding-left:22px;font-size:12px;line-height:21px;color:var(--dsw-alias-label-secondary)}',
   '.redaiNoteNum{position:absolute;left:0;top:2px;width:16px;font-size:10px;line-height:16px;text-align:center;color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}',
   '.redaiDocFoot{margin-top:26px;padding-top:12px;border-top:.5px solid var(--dsw-alias-border-l1);font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary)}',
+  // Chrome borrowed from the docs quickstart: where you are, and how to keep going.
+  '.redaiCrumb{display:flex;align-items:center;gap:6px;margin:10px 0 0;font-size:11px;line-height:16px;color:var(--dsw-alias-label-secondary)}',
+  '.redaiCrumbSep{color:var(--dsw-alias-label-tertiary)}',
+  '.redaiPager{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:26px}',
+  '.redaiPagerSlot{display:block}',
+  '.redaiPagerBtn{display:flex;flex-direction:column;gap:1px;min-width:0;padding:7px 10px;font:inherit;text-align:left;color:inherit;background:transparent;border:.5px solid var(--dsw-alias-border-l1);border-radius:8px;cursor:pointer;transition:background .12s ease}',
+  '.redaiPagerBtn:hover{background:var(--dsw-alias-interactive-bg-hover)}',
+  '.redaiPagerBtn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}',
+  '.redaiPagerBtn.next{text-align:right;align-items:flex-end}',
+  '.redaiPagerLabel{font-size:10px;line-height:15px;color:light-dark(#61666b,var(--dsw-alias-label-tertiary))}',
+  '.redaiPagerName{max-width:100%;font-size:12px;line-height:18px;color:var(--dsw-alias-label-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+  '.redaiContribute{margin-top:14px;font-size:11px;line-height:16px}',
+  '.redaiFootLink{color:var(--dsw-alias-label-secondary);text-decoration:underline;text-underline-offset:2px}',
+  '.redaiFootLink:hover{color:var(--dsw-alias-label-primary)}',
+  '.redaiFootLink:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}',
+  '@container (max-width:520px){.redaiPager{grid-template-columns:minmax(0,1fr)}}',
   '.redaiTocTitle{margin-bottom:6px;font-size:10px;line-height:15px;letter-spacing:.06em;color:light-dark(#61666b,var(--dsw-alias-label-tertiary))}',
   '.redaiTocLink{display:block;padding:3px 0 3px 9px;font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary);text-decoration:none;border-left:2px solid transparent}',
   '.redaiTocLink:hover{color:var(--dsw-alias-label-primary);border-left-color:var(--dsw-alias-border-l2,rgba(0,0,0,.2))}',
@@ -497,7 +513,10 @@ const TOC_MIN = 4
  * when they carry data. Nothing here invents copy: a missing field is either
  * left out or shown as a dash.
  */
-function SiteDetail({ link, detail, groupTitle, siblings, t, starred, onStar, onVisit, onDetail, onBack }) {
+/** Where a reader goes to add the editorial copy a skeleton page is missing. */
+const CONTRIBUTE_URL = 'https://github.com/QingshanYousi/DSH-Plugin-RedAi-Nav/edit/main/data/details.json'
+
+function SiteDetail({ link, detail, groupTitle, siblings, neighbours, t, starred, onStar, onVisit, onDetail, onBack }) {
   const data = detail || {}
   const intro = Array.isArray(data.intro) ? data.intro : []
   const facts = Array.isArray(data.facts) ? data.facts : []
@@ -780,6 +799,68 @@ function SiteDetail({ link, detail, groupTitle, siblings, t, starred, onStar, on
     wideHidden: hasContents && others.length > 0,
   })
 
+  // 4. Tail blocks belong to the reading column, not to the page: outside the
+  //    grid they would start at the rail's left edge and break the line the
+  //    reader is following. Pager first (keep reading), then the way to fill a
+  //    skeleton page, then the date stamp.
+  if (neighbours && (neighbours.prev || neighbours.next)) {
+    body.push(jsxs('nav', {
+      key: 'pager',
+      className: 'redaiPager',
+      'aria-label': t('detail.pager'),
+      children: [
+        neighbours.prev
+          ? jsxs('button', {
+            key: 'prev',
+            type: 'button',
+            className: 'redaiPagerBtn',
+            onClick: () => (typeof onDetail === 'function' ? onDetail(neighbours.prev) : onVisit(neighbours.prev.url)),
+            children: [
+              jsx('span', { key: 'l', className: 'redaiPagerLabel', children: '← ' + t('detail.prev') }),
+              jsx('span', { key: 'n', className: 'redaiPagerName', children: neighbours.prev.title }),
+            ],
+          })
+          : jsx('span', { key: 'prev', className: 'redaiPagerSlot' }),
+        neighbours.next
+          ? jsxs('button', {
+            key: 'next',
+            type: 'button',
+            className: 'redaiPagerBtn next',
+            onClick: () => (typeof onDetail === 'function' ? onDetail(neighbours.next) : onVisit(neighbours.next.url)),
+            children: [
+              jsx('span', { key: 'l', className: 'redaiPagerLabel', children: t('detail.next') + ' →' }),
+              jsx('span', { key: 'n', className: 'redaiPagerName', children: neighbours.next.title }),
+            ],
+          })
+          : jsx('span', { key: 'next', className: 'redaiPagerSlot' }),
+      ],
+    }))
+  }
+  // A skeleton page admits it is a skeleton, and offers the one fix that costs
+  // the reader nothing: open the data file on GitHub and add the write-up.
+  if (intro.length === 0) {
+    body.push(jsx('div', {
+      key: 'contribute',
+      className: 'redaiContribute',
+      children: jsx('a', {
+        className: 'redaiFootLink',
+        href: CONTRIBUTE_URL,
+        onClick: (event) => {
+          event.preventDefault()
+          onVisit(CONTRIBUTE_URL)
+        },
+        children: t('detail.contribute'),
+      }),
+    }))
+  }
+  if (data.asOf) {
+    body.push(jsx('div', {
+      key: 'asof',
+      className: 'redaiDocFoot',
+      children: fill(t('detail.asOf'), { date: data.asOf }),
+    }))
+  }
+
   return jsxs('div', {
     className: 'redaiDetail',
     children: [
@@ -790,6 +871,19 @@ function SiteDetail({ link, detail, groupTitle, siblings, t, starred, onStar, on
         onClick: onBack,
         children: '← ' + t('detail.back'),
       }),
+      // Where you are, in the list's own words. The group is not a link: the
+      // panel has no group-level view to go back to, so a fake link would lie.
+      groupTitle
+        ? jsxs('div', {
+          key: 'crumb',
+          className: 'redaiCrumb',
+          children: [
+            jsx('span', { key: 'root', children: t('detail.crumbRoot') }),
+            jsx('span', { key: 'sep', className: 'redaiCrumbSep', children: '/' }),
+            jsx('span', { key: 'group', children: groupTitle }),
+          ],
+        })
+        : null,
       jsxs('div', {
         key: 'top',
         className: 'redaiDetailTop',
@@ -911,13 +1005,6 @@ function SiteDetail({ link, detail, groupTitle, siblings, t, starred, onStar, on
           jsx('div', { key: 'body', className: 'redaiDocBody', children: body }),
         ],
       }),
-      data.asOf
-        ? jsx('div', {
-          key: 'asof',
-          className: 'redaiDocFoot',
-          children: fill(t('detail.asOf'), { date: data.asOf }),
-        })
-        : null,
     ],
   })
 }

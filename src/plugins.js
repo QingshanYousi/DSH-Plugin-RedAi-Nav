@@ -51,6 +51,10 @@ const cssPlugins = [
   // Freshness is still on the detail page and in the ordering itself, so at that
   // width the date goes and the name keeps its room.
   '@media (max-width:460px){.redaiRankRowDate{display:none}.redaiRankTopHead .redaiBadge{display:none}}',
+  '.redaiRankRowLang{flex:none;padding:0 5px;font-size:10px;line-height:15px;border-radius:4px;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-layer-1);box-shadow:inset 0 0 0 .5px var(--dsw-alias-border-l1)}',
+  // Below this width the name needs the room more than the language does; the
+  // language is still on the detail page, so nothing is lost.
+  '@media (max-width:600px){.redaiRankRowLang{display:none}}',
   // The row that cannot be ranked on freshness still says why it is here.
   '.redaiRankRowNote{flex:none;font-size:11px;line-height:16px;color:light-dark(#61666b,var(--dsw-alias-label-tertiary))}',
   // ── section footer ───────────────────────────────────────────────────────
@@ -229,6 +233,9 @@ function RankTop({ item, t, onSelect }) {
   // sentence and belongs to the page-level ordering line, not to a rank; the
   // declared/undeclared state already has a badge next to the name.
   const meta = [formatStars(item.stars) + ' ★']
+  // Language sits with the numbers, as it does on a GitHub topic page: it is
+  // the one field that tells a reader what they are installing before they click.
+  if (item.language) meta.push(item.language)
   const pushed = shortDate(item.pushed)
   if (pushed) meta.push(pushed)
   return jsxs('button', {
@@ -269,6 +276,9 @@ function RankRow({ item, t, onSelect }) {
     children: [
       jsx('span', { key: 'num', className: 'redaiRankRowNum', children: rankLabel(item.rank) }),
       jsx('span', { key: 'title', className: 'redaiRankRowTitle', children: item.title }),
+      item.language
+        ? jsx('span', { key: 'lang', className: 'redaiRankRowLang', children: item.language })
+        : null,
       item.archived === true
         ? jsx('span', { key: 'note', className: 'redaiRankRowNote', children: t('plugin.archived') })
         : null,

@@ -801,11 +801,20 @@ function NavPage(props) {
     // One skeleton for all sites: the editorial record is a bonus (`{}` when the
     // site has none), and the group is resolved from the list the card came from.
     const siteGroup = groupOfSite(detailLink.url)
+    // Prev/next follow the list's own order, not alphabetical: a reader paging
+    // through "AI 助手" should walk it the way the list presents it.
+    const groupLinks = siteGroup ? siteGroup.links : []
+    const at = groupLinks.findIndex((row) => row.url === detailLink.url)
+    const neighbours = {
+      prev: at > 0 ? groupLinks[at - 1] : null,
+      next: at >= 0 && at < groupLinks.length - 1 ? groupLinks[at + 1] : null,
+    }
     return detailShell(jsx(SiteDetail, {
       link: detailLink,
       detail: DETAILS[detailLink.url] || {},
       groupTitle: siteGroup ? (english ? siteGroup.titleEn || siteGroup.title : siteGroup.title) : '',
       siblings: siteGroup ? siteGroup.links : [],
+      neighbours,
       t,
       starred: store.starred.includes(detailLink.url),
       onStar: star,
