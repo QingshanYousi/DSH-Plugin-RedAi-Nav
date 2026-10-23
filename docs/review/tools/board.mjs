@@ -16,6 +16,17 @@ import { join } from 'node:path'
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url))
 const src = readFileSync(join(ROOT, 'lib/client.js'), 'utf8')
 const i18n = JSON.parse(readFileSync(join(ROOT, 'data/i18n.json'), 'utf8'))
+// Every expected count below is derived from the data file at run time. The
+// 0.9.0 rework moved the numbers (rebuild, 88 → 90 rows at rest), and a board
+// check that hard-codes them reports a data refresh as a defect.
+const ranking = JSON.parse(readFileSync(join(ROOT, 'data/plugins.json'), 'utf8'))
+const visibleCats = ranking.categories.filter((row) => row.hidden !== true)
+const hiddenCats = ranking.categories.filter((row) => row.hidden === true)
+const sum = (rows, pick) => rows.reduce((n, row) => n + pick(row), 0)
+const restRows = sum(visibleCats, (row) => row.items.length)
+const expandedRows = sum(ranking.categories, (row) => row.items.length)
+const restTotal = sum(visibleCats, (row) => row.total)
+const expandedTotal = sum(ranking.categories, (row) => row.total)
 
 const stores = new Map()
 let currentStore = null
@@ -178,19 +189,30 @@ click(tabs()[1])
 check('B1.2 切到插件榜', sections().length === 9, 'sections=' + sections().length)
 
 const headText = text(counts())
-check('B1.3 头部数字 = 榜上行数 88', headText.indexOf('88') > -1, headText)
+check('B1.3 头部数字 = 榜上行数 ' + restRows,
+  headText === fill(zh['plugin.count'], { n: restRows }), headText)
 const rankRows = byClass('redaiRankRow')
 const rankTops = byClass('redaiRankTop')
-check('B1.4 9 个第一名卡', rankTops.length === 9, 'n=' + rankTops.length)
-check('B1.5 88 行 = 9 张第一名卡 + 79 行', rankTops.length + rankRows.length === 88,
-  rankTops.length + '+' + rankRows.length)
-check('B1.6 折叠分类不渲染', !sections().some((s) => text(s).indexOf(zh['plugin.category.theme']) > -1
-  || text(s).indexOf(zh['plugin.category.fun']) > -1))
+check('B1.4 ' + visibleCats.length + ' 个第一名卡', rankTops.length === visibleCats.length, 'n=' + rankTops.length)
+check('B1.5 ' + restRows + ' 行 = ' + visibleCats.length + ' 张第一名卡 + ' + (restRows - visibleCats.length) + ' 行',
+  rankTops.length + rankRows.length === restRows, rankTops.length + '+' + rankRows.length)
+check('B1.6 折叠分类不渲染', !sections().some((s) => hiddenCats.some((c) => text(s).indexOf(zh['plugin.category.' + c.id]) > -1)))
 
+// D3/D4: the three counts are one story — chip = live total, section head =
+// "榜上 10 / 收录 89", footer is only the door to the full list. The old
+// "共 94 个" (raw list size, printed twice) is gone.
 const firstSection = sections()[0]
+const firstCat = visibleCats[0]
 const firstRows = text(firstSection)
-check('B1.7 节标题 + 节底都写「共 94 个」', (firstRows.match(new RegExp(fill(zh['plugin.categoryTotal'], { n: 94 }).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length === 2,
-  'hits=' + (firstRows.match(/共 94 个/g) || []).length)
+const sectionCount = text(byClass('redaiRankSectionCount')[0])
+check('B1.7 节头写「榜上 N / 收录 total」', sectionCount === fill(zh['plugin.boardCounts'], {
+  n: firstCat.items.length, total: firstCat.total,
+}), sectionCount)
+const footText = text(byClass('redaiRankFoot')[0])
+check('B1.8 节底只剩「查看全部 →」', footText === zh['plugin.seeAll'] + ' →', footText)
+check('B1.9 节内不再出现「共 N 个」', !/共\s*\d+\s*个/.test(firstRows), (firstRows.match(/共\s*\d+\s*个/) || [''])[0])
+check('B1.10 chip 计数 = 存活 total（不是榜上行数）', text(chips()[0]) === fill(zh['plugin.filterAll'], { n: restTotal }),
+  text(chips()[0]) + ' vs ' + restTotal)
 
 // ── 2. ordinals ────────────────────────────────────────────────────────────
 const ordinalOf = (node) => text(byClass(node === 'top' ? 'redaiRankTopNum' : 'redaiRankRowNum')[0])
@@ -228,8 +250,14 @@ check('B4.4 分类空态文案带分类名', catEmpty === fill(zh['plugin.emptyC
 type('')
 click(chips()[0]) // 回到「全部」，否则 更多 只展开当前选中类的相邻节
 click(byClass('redaiFilterChip', false).filter((c) => String(c.props.className).indexOf('redaiCatMore') > -1)[0])
-check('B5.1 更多展开后 11 节', sections().length === 11, 'sections=' + sections().length)
-check('B5.2 展开后头部计数 108', text(counts()).indexOf('108') > -1, text(counts()))
+check('B5.1 更多展开后 ' + ranking.categories.length + ' 节', sections().length === ranking.categories.length,
+  'sections=' + sections().length)
+check('B5.2 展开后头部计数 ' + expandedRows, text(counts()).indexOf(String(expandedRows)) > -1, text(counts()))
+// No "number goes backwards": opening 更多 must not shrink anything.
+check('B5.3 展开后行数不倒退', expandedRows >= restRows && expandedTotal >= restTotal,
+  expandedRows + 'vs' + restRows + ' · ' + expandedTotal + 'vs' + restTotal)
+check('B5.4 展开后 chip 计数 = 全量 total', text(chips()[0]) === fill(zh['plugin.filterAll'], { n: expandedTotal }),
+  text(chips()[0]) + ' vs ' + expandedTotal)
 console.log('    [观察] 展开后 头部=' + text(counts()) + ' · 全部chip=' + text(chips()[0]) + ' · 第一节=' + text(byClass('redaiRankSectionCount')[0]))
 
 // ── 6. row → detail ────────────────────────────────────────────────────────
