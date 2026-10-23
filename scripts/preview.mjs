@@ -124,15 +124,24 @@ if (wantPluginDetail) {
 } else if (wantDetail) {
   const links = JSON.parse(readFileSync(join(root, 'data/links.json'), 'utf8'))
   const details = JSON.parse(readFileSync(join(root, 'data/details.json'), 'utf8'))
-  const url = Object.keys(details.sites)[0]
-  const link = links.groups.flatMap((g) => g.links).find((row) => row.url === url)
+  // `--site <url>` renders any site in the list. Every site has a page now, so
+  // the interesting screenshot is the one with no editorial record behind it.
+  const siteAt = process.argv.indexOf('--site')
+  const wantedSite = siteAt > -1 ? process.argv[siteAt + 1] : ''
+  const url = wantedSite || Object.keys(details.sites)[0]
+  const link = links.groups.flatMap((group) => group.links).find((row) => row.url === url)
+  if (!link) throw new Error('no such site in data/links.json: ' + url)
+  const group = links.groups.find((row) => row.links.some((site) => site.url === url)) || null
   tree = shell(exported.__components.SiteDetail({
     link,
-    detail: details.sites[url],
+    detail: details.sites[url] || {},
+    groupTitle: group ? group.title : '',
+    siblings: group ? group.links : [],
     t: props.t,
     starred: true,
     onStar: () => {},
     onVisit: () => {},
+    onDetail: () => {},
     onBack: () => {},
   }))
 } else {
@@ -202,6 +211,10 @@ ${styleText}
 </div></body></html>`
 
 mkdirSync(join(root, 'preview'), { recursive: true })
-const outName = wantPluginDetail ? 'plugin.html' : wantDetail ? 'detail.html' : wantPlugins ? 'plugins.html' : 'index.html'
+const outName = wantPluginDetail
+  ? 'plugin.html'
+  : wantDetail
+    ? (process.argv.indexOf('--site') > -1 ? 'detail-skeleton.html' : 'detail.html')
+    : wantPlugins ? 'plugins.html' : 'index.html'
 writeFileSync(join(root, 'preview', outName), html)
 console.log('wrote preview/%s (%d bytes)', outName, html.length)

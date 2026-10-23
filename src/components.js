@@ -137,12 +137,19 @@ const cssSites = [
     // sticky back control lands on the same axis in both views.
     // Detail pages reuse the list's scroll container and padding rhythm, so the
   '.redaiBannerClose:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}.redaiDetailShell{padding:0 24px 40px;max-width:760px}',
-  // Site details carry a sticky contents list, so they get a wider shell and
-  // become a query container. Keyed off the contents list itself rather than a
-  // flag, so any renderer that emits the document gets the same layout.
-  '.redaiDetailShell:has(.redaiDocToc){max-width:980px;container-type:inline-size}',
+  // Site details carry a sticky rail (contents + the rest of the group), so they
+  // get a wider shell and become a query container. Keyed off the rail itself
+  // rather than a flag, so any renderer that emits the document gets the same
+  // layout — and every site emits it, editorial content or not.
+  '.redaiDetailShell:has(.redaiDocRail){max-width:980px;container-type:inline-size}',
   '.redaiDetail{flex:1 1 auto;min-width:0;padding-top:8px}.redaiDetail>.redaiGhost{position:sticky;top:0;z-index:2;background:var(--dsw-alias-bg-base);margin-left:-2px}',
-  '.redaiDetailTop{display:flex;align-items:flex-start;gap:12px}.redaiDetailIcon{flex:none;display:grid;place-items:center;width:46px;height:46px;border-radius:12px;font-size:20px;font-weight:600;color:#fff}',
+  // The header is capped so the star stays with the title instead of floating at
+  // the far edge of a 980px shell. 520 is measured, not guessed: the row starts
+  // at the shell's 24px padding (x=221 in a 1180 shell), so a 720px cap would
+  // still park the star at x≈944 — 650px from the title it belongs to. At 520
+  // the star lands at x≈744, next to the content it acts on. The narrow
+  // container drops the cap entirely rather than clipping it.
+  '.redaiDetailTop{display:flex;align-items:flex-start;gap:12px;max-width:520px}.redaiDetailIcon{flex:none;display:grid;place-items:center;width:46px;height:46px;border-radius:12px;font-size:20px;font-weight:600;color:#fff}',
   '.redaiDetailHead{flex:1;min-width:0}.redaiDetailTitle{font-size:17px;line-height:24px;font-weight:600}',
   '.redaiDetailTagline{margin-top:2px;font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary)}.redaiDetailTags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}',
   '.redaiTag{padding:2px 8px;font-size:11px;line-height:16px;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-layer-1);border:.5px solid var(--dsw-alias-border-l1);border-radius:999px}.redaiDetailBar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:14px}',
@@ -159,7 +166,41 @@ const cssSites = [
   // list that only appears when the panel is wide enough to afford it.
   '.redaiDocHost{font-size:12px;line-height:18px;color:var(--dsw-alias-label-tertiary)}',
   '.redaiDoc{display:grid;grid-template-columns:minmax(0,1fr);gap:0;margin-top:10px}',
-  '.redaiDocToc{display:none}',
+  // The rail is a wide-panel affordance: below 720px it would eat the width the
+  // prose needs. It is not moved into the flow, it is dropped — the same sibling
+  // list is emitted once more as the last body section, so nothing is lost.
+  '.redaiDocRail{display:none}',
+  // The rail holds two separate answers — "where am I in this page" and "where
+  // else could I go" — so when both are present a hairline keeps them apart.
+  '.redaiDocToc+.redaiRailNav{margin-top:16px;padding-top:12px;border-top:.5px solid var(--dsw-alias-border-l1)}',
+  '.redaiRailNav{margin-bottom:18px}',
+  // "You are here" in the group. The current site is never one of the links
+  // below it, so this line is what carries `aria-current="page"`.
+  '.redaiRailHere{padding:3px 0 3px 9px;font-size:10px;line-height:15px;color:var(--dsw-alias-label-tertiary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+  '.redaiSiblingList{display:flex;flex-direction:column;gap:1px;margin:0;padding:0;list-style:none}',
+  // The body copy is the fuller shape: two columns of cards, each carrying the
+  // list's own description under the name. Two is the width where a description
+  // still reads as a sentence instead of a column of two words.
+  '.redaiSiblingGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0;padding:0;list-style:none}',
+  '.redaiSiblingGrid .redaiSibling{padding:9px 11px;border:.5px solid var(--dsw-alias-border-l1);border-radius:8px}',
+  '.redaiSiblingDesc{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;margin-top:2px;font-size:11px;line-height:16px;color:var(--dsw-alias-label-secondary);overflow-wrap:anywhere}',
+  '.redaiSiblingGrid .redaiSiblingName{font-size:13px;line-height:19px;color:var(--dsw-alias-label-primary)}',
+  // One row per site in both placements: name over host, both ellipsised, so a
+  // long site name can never push the rail or the grid wider than its box.
+  '.redaiSibling{display:flex;flex-direction:column;min-width:0;padding:5px 8px;border-radius:6px;color:inherit;text-decoration:none}',
+  '.redaiSibling:hover{background:var(--dsw-alias-interactive-bg-hover)}',
+  '.redaiSibling:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}',
+  '.redaiSiblingName{min-width:0;font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+  '.redaiSibling:hover .redaiSiblingName{color:var(--dsw-alias-label-primary)}',
+  '.redaiSiblingHost{min-width:0;font-size:10px;line-height:15px;color:var(--dsw-alias-label-tertiary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+  '.redaiSiblingEmpty{margin:4px 0 0;padding-left:9px;font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary)}',
+  // The three fixed facts of a site: same cell rhythm as the editorial fact grid
+  // but its own classes, because these are computed, not curated.
+  '.redaiInfoGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1px;margin:0;background:var(--dsw-alias-border-l1);border:.5px solid var(--dsw-alias-border-l1);border-radius:8px;overflow:hidden}',
+  '.redaiInfoCell{min-width:0;margin:0;padding:9px 12px;background:var(--dsw-alias-bg-base)}',
+  '.redaiInfoLabel{margin:0;font-size:10px;line-height:15px;letter-spacing:.05em;color:var(--dsw-alias-label-tertiary)}',
+  '.redaiInfoValue{margin:2px 0 0;font-size:13px;line-height:19px;color:var(--dsw-alias-label-primary);overflow-wrap:anywhere}',
+  '.redaiInfoTags{display:flex;flex-wrap:wrap;align-items:center;gap:4px;min-height:19px}',
   '.redaiDocBody{min-width:0}',
   '.redaiDocSection{padding-top:20px;scroll-margin-top:44px}',
   '.redaiDocSection+.redaiDocSection{margin-top:2px;border-top:.5px solid var(--dsw-alias-border-l1)}',
@@ -196,8 +237,13 @@ const cssSites = [
   '.redaiTocLink{display:block;padding:3px 0 3px 9px;font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary);text-decoration:none;border-left:2px solid transparent}',
   '.redaiTocLink:hover{color:var(--dsw-alias-label-primary);border-left-color:var(--dsw-alias-border-l2,rgba(0,0,0,.2))}',
   '.redaiTocLink:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}',
-  '@container (min-width:720px){.redaiDoc{grid-template-columns:156px minmax(0,1fr);gap:32px}.redaiDocToc{display:block;position:sticky;top:44px;align-self:start}}',
-  '@container (max-width:520px){.redaiModeRow{grid-template-columns:minmax(0,1fr);gap:1px}.redaiModelRow{grid-template-columns:minmax(0,1fr) auto;gap:2px 10px}.redaiModelNote{grid-column:1 / -1}}',
+  // The rail is the only thing the wide layout adds. `redaiDocWideHidden` marks
+  // a body block the rail already carries; the page only puts it there when the
+  // rail also has a contents list, so a short page keeps its group section.
+  '@container (min-width:720px){.redaiDoc{grid-template-columns:164px minmax(0,1fr);gap:28px}.redaiDocRail{display:block;position:sticky;top:44px;align-self:start}.redaiDocWideHidden{display:none}}',
+  // One column of cards once the panel is too narrow to hold two readable ones;
+  // and the header gives up its width cap rather than being clipped by it.
+  '@container (max-width:520px){.redaiModeRow{grid-template-columns:minmax(0,1fr);gap:1px}.redaiModelRow{grid-template-columns:minmax(0,1fr) auto;gap:2px 10px}.redaiModelNote{grid-column:1 / -1}.redaiSiblingGrid{grid-template-columns:minmax(0,1fr)}.redaiDetailTop{max-width:none}}',
   '.redaiLink{font-size:12px;line-height:18px;color:var(--dsw-alias-link,var(--dsw-alias-brand-primary));text-decoration:none;padding:2px 0}.redaiLink:hover{text-decoration:underline;text-underline-offset:3px;text-decoration-style:dotted}',
   '.redaiTabs{display:flex;gap:2px;padding:8px 24px 0;border-bottom:.5px solid var(--dsw-alias-border-l1)}.redaiTab{position:relative;height:30px;padding:0 10px;font:inherit;font-size:13px;line-height:30px;color:var(--dsw-alias-label-secondary);background:transparent;border:0;border-radius:6px 6px 0 0;cursor:pointer}',
   '.redaiTab:hover{background:var(--dsw-alias-interactive-bg-hover)}.redaiTab.on{color:var(--dsw-alias-label-primary);font-weight:600}',
@@ -425,28 +471,60 @@ function detailSection(key, title, body, titleClass) {
   })
 }
 
-/** Detail page for a site that ships editorial content. */
-function SiteDetail({ link, detail, t, starred, onStar, onVisit, onBack }) {
-  const intro = detail.intro || []
-  const facts = detail.facts || []
-  const capabilities = detail.capabilities || []
-  const limits = detail.limits || []
-  const steps = detail.steps || []
-  const modes = detail.modes || []
-  const scenarios = detail.scenarios || []
-  const models = detail.models || []
-  const highlights = detail.highlights || []
-  const links = detail.links || []
+/** Stand-in for a fact the record cannot answer, so the row still lines up. */
+const DASH = '—'
+/** How many sites of the same group the rail and the inline block may list. */
+const SIBLING_MAX = 6
+/** Below this many entries a contents list restates the headings it points at. */
+const TOC_MIN = 4
+
+/**
+ * Detail page for one site.
+ *
+ * Editorial content is optional — `data/details.json` only covers the sites
+ * someone wrote about, and the other 87 still need an answer when their ⓘ is
+ * clicked. So the document opens with three sections every site can fill from
+ * fields the list already holds: what it is (`intro`, else the curated `desc`),
+ * what the record says (domain, group, status, star), and the rest of its group.
+ * The editorial blocks are appended after those, in judgement order, and only
+ * when they carry data. Nothing here invents copy: a missing field is either
+ * left out or shown as a dash.
+ */
+function SiteDetail({ link, detail, groupTitle, siblings, t, starred, onStar, onVisit, onDetail, onBack }) {
+  const data = detail || {}
+  const intro = Array.isArray(data.intro) ? data.intro : []
+  const facts = Array.isArray(data.facts) ? data.facts : []
+  const capabilities = Array.isArray(data.capabilities) ? data.capabilities : []
+  const limits = Array.isArray(data.limits) ? data.limits : []
+  const steps = Array.isArray(data.steps) ? data.steps : []
+  const modes = Array.isArray(data.modes) ? data.modes : []
+  const scenarios = Array.isArray(data.scenarios) ? data.scenarios : []
+  const models = Array.isArray(data.models) ? data.models : []
+  const highlights = Array.isArray(data.highlights) ? data.highlights : []
+  const links = Array.isArray(data.links) ? data.links : []
+  const editorialTags = Array.isArray(data.tags) ? data.tags : []
   const tags = statusTags(link, t, Date.now())
+  // The page you are reading is never one of the destinations it lists, so the
+  // current site is filtered out before the six-row budget is applied — not after.
+  const groupLinks = Array.isArray(siblings) ? siblings : []
+  const others = groupLinks
+    .filter((row) => row && row.url && row.url !== link.url)
+    .slice(0, SIBLING_MAX)
 
   const body = []
   const toc = []
-  const addSection = (key, title, node) => {
-    toc.push({ key, title })
+  const addSection = (key, title, node, options) => {
+    const opts = options || {}
+    // `toc: false` marks the inline copy of the group list: it is navigation,
+    // not content, so it never becomes an entry that could scroll to a block
+    // the wide layout does not even render.
+    if (opts.toc !== false) toc.push({ key, title })
     body.push(jsxs('section', {
       key,
       id: 'redai-sec-' + key,
-      className: 'redaiDocSection',
+      // `wideHidden` says "the rail already carries this": only the group list
+      // gets it, and only when the rail has a contents list to pair it with.
+      className: 'redaiDocSection' + (opts.wideHidden ? ' redaiDocWideHidden' : ''),
       children: [
         jsx('h2', { key: 'h', className: 'redaiDocH2', children: title }),
         node,
@@ -460,14 +538,86 @@ function SiteDetail({ link, detail, t, starred, onStar, onVisit, onBack }) {
     const node = document.getElementById('redai-sec-' + key)
     if (node && typeof node.scrollIntoView === 'function') node.scrollIntoView({ block: 'start' })
   }
+  /** One labelled cell of the computed facts grid. */
+  const infoCell = (key, label, value) => jsxs('div', {
+    key,
+    className: 'redaiInfoCell',
+    children: [
+      jsx('dt', { key: 'l', className: 'redaiInfoLabel', children: label }),
+      jsx('dd', {
+        key: 'v',
+        className: 'redaiInfoValue' + (key === 'status' ? ' redaiInfoTags' : ''),
+        children: value,
+      }),
+    ],
+  })
+  /**
+   * One sibling row: the whole row is the target, the host is the fine print.
+   * The body copy carries the list's own description; the rail copy stays two
+   * lines tall so six of them fit in a 164px column.
+   */
+  const siblingLink = (row, withDesc) => jsxs('a', {
+    className: 'redaiSibling',
+    href: row.url,
+    title: row.url,
+    onClick: (event) => {
+      event.preventDefault()
+      // Same rule as the cards: a site with a page of its own opens that page,
+      // everything else opens directly.
+      if (DETAILS[row.url] && typeof onDetail === 'function') onDetail(row)
+      else onVisit(row.url)
+    },
+    children: [
+      jsx('span', { key: 'n', className: 'redaiSiblingName', children: row.title }),
+      withDesc && row.desc
+        ? jsx('span', { key: 'd', className: 'redaiSiblingDesc', children: row.desc })
+        : null,
+      jsx('span', { key: 'h', className: 'redaiSiblingHost', children: urlHost(row.url) }),
+    ],
+  })
+  /**
+   * The group list, in both of the shapes the page uses: the rail's compact one,
+   * and the body's fuller one (cards with the description the list ships).
+   */
+  const siblingList = (listClass, withDesc) => others.length === 0
+    ? jsx('p', { className: 'redaiSiblingEmpty', children: t('detail.siblingsEmpty') })
+    : jsx('ul', {
+      className: listClass,
+      children: others.map((row) => jsx('li', {
+        key: row.url,
+        children: siblingLink(row, withDesc),
+      })),
+    })
 
-  if (intro.length > 0) {
-    addSection('intro', t('detail.intro'), intro.map((text, index) => jsx('p', {
-      key: 'p' + index,
-      className: index === 0 ? 'redaiDocP lead' : 'redaiDocP',
-      children: text,
-    })))
-  }
+  // 1. What it is. With no write-up the list's own description is the only real
+  //    sentence we have; with neither, the section says exactly that.
+  const introText = intro.length > 0 ? intro : [link.desc || t('detail.introFallback')]
+  // The header's one-liner. When the intro *is* the list's description, printing
+  // the same sentence again right below it reads like a bug, so in that case the
+  // header keeps the title and lets the section carry the words.
+  const tagline = data.tagline || (intro.length > 0 ? link.desc || '' : '')
+  addSection('intro', t('detail.intro'), introText.map((text, index) => jsx('p', {
+    key: 'p' + index,
+    className: index === 0 ? 'redaiDocP lead' : 'redaiDocP',
+    children: text,
+  })))
+
+  // 2. What the record says — every value below is read, never written.
+  addSection('info', t('detail.info'), jsx('dl', {
+    className: 'redaiInfoGrid',
+    children: [
+      infoCell('domain', t('detail.field.domain'), urlHost(link.url)),
+      infoCell('group', t('detail.field.group'), groupTitle || DASH),
+      infoCell('status', t('detail.field.status'), tags.length > 0
+        ? tags.map((tag) => jsx('span', {
+          key: tag.key,
+          className: 'redaiTagPill ' + tag.key,
+          children: tag.label,
+        }))
+        : DASH),
+      infoCell('starred', t('detail.field.starred'), starred ? t('detail.starredYes') : t('detail.starredNo')),
+    ],
+  }))
 
   if (facts.length > 0) {
     addSection('facts', t('detail.facts'), jsx('dl', {
@@ -600,6 +750,17 @@ function SiteDetail({ link, detail, t, starred, onStar, onVisit, onBack }) {
     }))
   }
 
+  // 3. The rest of the group. Last in the body because it is the only section
+  //    that sends you somewhere else. The rail shows the same list, so the body
+  //    copy is only dropped when the rail pairs it with a contents list; on a
+  //    page too short for a contents list this section is substance, not a
+  //    repeat, and it fills what would otherwise be half a screen of nothing.
+  const hasContents = toc.length >= TOC_MIN
+  addSection('siblings', t('detail.siblings'), siblingList('redaiSiblingGrid', true), {
+    toc: false,
+    wideHidden: hasContents,
+  })
+
   return jsxs('div', {
     className: 'redaiDetail',
     children: [
@@ -626,8 +787,10 @@ function SiteDetail({ link, detail, t, starred, onStar, onVisit, onBack }) {
             className: 'redaiDetailHead',
             children: [
               jsx('div', { key: 't', className: 'redaiDetailTitle', children: link.title }),
-              jsx('div', { key: 'g', className: 'redaiDetailTagline', children: detail.tagline || link.desc }),
-              (tags.length > 0 || (detail.tags && detail.tags.length > 0))
+              (tagline)
+                ? jsx('div', { key: 'g', className: 'redaiDetailTagline', children: tagline })
+                : null,
+              (tags.length > 0 || editorialTags.length > 0)
                 ? jsx('div', {
                   key: 'tags',
                   className: 'redaiDetailTags',
@@ -637,7 +800,7 @@ function SiteDetail({ link, detail, t, starred, onStar, onVisit, onBack }) {
                       className: 'redaiTagPill ' + tag.key,
                       children: tag.label,
                     })),
-                    ...(detail.tags || []).map((tag) => jsx('span', { key: tag, className: 'redaiTag', children: tag })),
+                    ...editorialTags.map((tag) => jsx('span', { key: tag, className: 'redaiTag', children: tag })),
                   ],
                 })
                 : null,
@@ -673,29 +836,67 @@ function SiteDetail({ link, detail, t, starred, onStar, onVisit, onBack }) {
         key: 'doc',
         className: 'redaiDoc',
         children: [
-          jsxs('nav', {
-            key: 'toc',
-            className: 'redaiDocToc',
-            'aria-label': t('detail.toc'),
+          // The rail: two blocks, both of which are navigation, never content.
+          // It is the wide-panel layout and the only place the contents list
+          // lives; the group list is repeated inline for the narrow layout.
+          jsxs('div', {
+            key: 'rail',
+            className: 'redaiDocRail',
             children: [
-              jsx('div', { key: 'l', className: 'redaiTocTitle', children: t('detail.toc') }),
-              ...toc.map((row) => jsx('a', {
-                key: row.key,
-                className: 'redaiTocLink',
-                href: '#redai-sec-' + row.key,
-                onClick: (event) => jump(event, row.key),
-                children: row.title,
-              })),
+              // Three entries restate the page you are already reading; four is
+              // where a contents list starts saving a scroll. The same boolean
+              // also decides whether the body keeps its own copy of the group.
+              hasContents
+                ? jsxs('nav', {
+                  key: 'toc',
+                  className: 'redaiDocToc',
+                  'aria-label': t('detail.toc'),
+                  children: [
+                    jsx('div', { key: 'l', className: 'redaiTocTitle', children: t('detail.toc') }),
+                    ...toc.map((row) => jsx('a', {
+                      key: row.key,
+                      className: 'redaiTocLink',
+                      href: '#redai-sec-' + row.key,
+                      onClick: (event) => jump(event, row.key),
+                      children: row.title,
+                    })),
+                  ],
+                })
+                : null,
+              jsxs('nav', {
+                key: 'siblings',
+                className: 'redaiRailNav',
+                'aria-label': t('detail.siblings'),
+                children: [
+                  jsx('div', {
+                    key: 'l',
+                    className: 'redaiTocTitle',
+                    children: groupTitle
+                      ? t('detail.siblings') + ' · ' + groupTitle
+                      : t('detail.siblings'),
+                  }),
+                  // The current site is named here instead of being listed as a
+                  // link to itself — that is what `aria-current` marks up.
+                  jsx('div', {
+                    key: 'here',
+                    className: 'redaiRailHere',
+                    'aria-current': 'page',
+                    title: link.title,
+                    children: fill(t('detail.current'), { title: link.title }),
+                  }),
+                  siblingList('redaiSiblingList'),
+                ],
+              }),
             ],
           }),
           jsx('div', { key: 'body', className: 'redaiDocBody', children: body }),
         ],
       }),
-      detail.asOf
+      data.asOf
         ? jsx('div', {
           key: 'asof',
           className: 'redaiDocFoot',
-          children: fill(t('detail.asOf'), { date: detail.asOf }),
+          children: fill(t('detail.asOf'), { date: data.asOf }),
         })
         : null,
     ],

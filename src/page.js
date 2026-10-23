@@ -193,6 +193,21 @@ function NavPage(props) {
   for (const group of LINKS.groups) for (const link of group.links) byUrl.set(link.url, link)
   for (const link of store.custom) byUrl.set(link.url, link)
 
+  /**
+   * The list group a site belongs to — what the detail page calls "same group".
+   * Stars are not a group: a starred site still belongs where the list put it,
+   * so the synthetic starred/custom buckets are only consulted for user data.
+   */
+  const groupOfSite = (url) => {
+    for (const group of LINKS.groups) {
+      if (group.links.some((link) => link.url === url)) return group
+    }
+    if (store.custom.some((link) => link.url === url)) {
+      return { id: 'custom', title: t('group.custom'), titleEn: t('group.custom'), links: store.custom }
+    }
+    return null
+  }
+
   const now = Date.now()
   const starredLinks = store.starred.map((url) => byUrl.get(url)).filter(Boolean)
   const recentLinks = store.recent.map((url) => byUrl.get(url)).filter(Boolean)
@@ -247,8 +262,13 @@ function NavPage(props) {
   /** A card click always opens the site; the ⓘ control is the way to details. */
   const activate = (link) => visit(link.url)
 
+  /**
+   * Opens a site's page. Only the list remembers a scroll offset: hopping from
+   * one detail page to another must not overwrite it, or 返回列表 would land
+   * where the previous document was scrolled to.
+   */
   const openDetail = (link) => {
-    rememberScroll()
+    if (view === null) rememberScroll()
     setView({ kind: 'site', url: link.url })
   }
 
@@ -642,7 +662,9 @@ function NavPage(props) {
               active: index === active,
               starred: store.starred.includes(link.url),
               onActivate: activate,
-              onDetail: DETAILS[link.url] ? openDetail : undefined,
+              // Every card has a way in: the detail page is a skeleton built
+              // from list data, so it does not need editorial content to exist.
+              onDetail: openDetail,
               onStar: star,
               onRemove: group.custom ? remove : undefined,
             })
@@ -775,15 +797,20 @@ function NavPage(props) {
   }
 
   const detailLink = view && view.kind === 'site' ? byUrl.get(view.url) : null
-  const detail = detailLink ? DETAILS[detailLink.url] : null
-  if (detailLink && detail) {
+  if (detailLink) {
+    // One skeleton for all sites: the editorial record is a bonus (`{}` when the
+    // site has none), and the group is resolved from the list the card came from.
+    const siteGroup = groupOfSite(detailLink.url)
     return detailShell(jsx(SiteDetail, {
       link: detailLink,
-      detail,
+      detail: DETAILS[detailLink.url] || {},
+      groupTitle: siteGroup ? (english ? siteGroup.titleEn || siteGroup.title : siteGroup.title) : '',
+      siblings: siteGroup ? siteGroup.links : [],
       t,
       starred: store.starred.includes(detailLink.url),
       onStar: star,
       onVisit: visit,
+      onDetail: openDetail,
       onBack: () => setView(null),
     }))
   }

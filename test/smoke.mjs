@@ -204,6 +204,10 @@ const flatten = (node, out = []) => {
   return out
 }
 const byClass = (nodes, className) => nodes.filter((node) => node.props && node.props.className === className)
+// Same lookup for elements that carry a modifier next to the class under test
+// (`.redaiDocSection redaiDocBodySiblings`), where exact equality would miss them.
+const byClassIn = (nodes, className) => nodes.filter((node) => node.props
+  && (' ' + String(node.props.className || '') + ' ').indexOf(' ' + className + ' ') > -1)
 const cardsOf = (nodes) => nodes.filter((node) => node.props && String(node.props.className || '').startsWith('redaiNavCard'))
 
 const injected = page.options.inject()
@@ -272,48 +276,206 @@ assert.deepEqual(titles.slice(0, 2),
   'custom, then starred, then the built-in groups')
 
 // ── detail page render ──────────────────────────────────────────────────────
+// Every site gets the same document: three fixed sections built only from fields
+// the list already carries ("what it is" → "what the record says" → "the rest of
+// its group"), then whichever editorial blocks data/details.json happens to hold.
+// One site has that data today, so the skeleton is the rule, not the exception.
 const { SiteDetail } = exported.__components
 const detailUrl = Object.keys(details.sites)[0]
 const detailLink = data.groups.flatMap((g) => g.links).find((l) => l.url === detailUrl)
-const detailNodes = flatten(SiteDetail({
+const detailGroup = data.groups.find((g) => g.links.some((l) => l.url === detailUrl))
+const renderSite = (overrides) => flatten(SiteDetail({
   link: detailLink,
   detail: details.sites[detailUrl],
+  groupTitle: detailGroup.title,
+  siblings: detailGroup.links,
   t: injected.t,
   starred: false,
   onStar: () => {},
   onVisit: () => {},
   onBack: () => {},
+  ...overrides,
 }))
+const detailNodes = renderSite({})
 assert.equal(byClass(detailNodes, 'redaiDetailTitle')[0].props.children, detailLink.title)
-// v2 turns the detail page into a reading document: one section per data block
-// that is actually present, a sticky contents list that mirrors them, and a
-// foot note saying when the facts were compiled. The section order is the
-// judgement order — what it is, what it does, what it cannot do, how to start.
 const detailData = details.sites[detailUrl]
-const expectedSections = ['intro', 'facts', 'capabilities', 'limits', 'steps', 'modes', 'scenarios', 'models', 'highlights', 'links']
-  .filter((key) => {
-    const value = detailData[key]
-    return Array.isArray(value) && value.length > 0
-  })
-const docSections = byClass(detailNodes, 'redaiDocSection')
-assert.equal(docSections.length, expectedSections.length, 'one section per populated data block')
+const editorialSections = ['facts', 'capabilities', 'limits', 'steps', 'modes', 'scenarios', 'models', 'highlights', 'links']
+  .filter((key) => Array.isArray(detailData[key]) && detailData[key].length > 0)
+const docSections = byClassIn(detailNodes, 'redaiDocSection')
 assert.deepEqual(
   docSections.map((node) => String(node.props.id).replace('redai-sec-', '')),
-  expectedSections,
-  'sections render in judgement order',
+  ['intro', 'info'].concat(editorialSections, ['siblings']),
+  'the fixed sections frame the editorial ones, and the group comes last',
 )
-const tocLinks = byClass(detailNodes, 'redaiTocLink')
-assert.equal(tocLinks.length, expectedSections.length, 'the contents list mirrors the sections')
+// The contents list mirrors the content sections. The group list is navigation,
+// not content, so it is not an entry: in the wide layout the section it would
+// jump to is not even in the flow.
+const tocLinks = byClassIn(detailNodes, 'redaiTocLink')
 assert.deepEqual(
   tocLinks.map((node) => node.props.href),
-  expectedSections.map((key) => '#redai-sec-' + key),
-  'each contents entry targets its own section',
+  ['intro', 'info'].concat(editorialSections).map((key) => '#redai-sec-' + key),
+  'each contents entry targets its own section, in judgement order',
 )
-assert.ok(byClass(detailNodes, 'redaiStep').length === detailData.steps.length)
-assert.equal(byClass(detailNodes, 'redaiFactCell').length, detailData.facts.length, 'one cell per key fact')
-assert.equal(byClass(detailNodes, 'redaiLimitItem').length, detailData.limits.length, 'limitations are not dropped')
-assert.equal(byClass(detailNodes, 'redaiModelRow').length, detailData.models.length)
-assert.equal(byClass(detailNodes, 'redaiDocFoot').length, 1, 'the page says when its facts were compiled')
+assert.ok(byClassIn(detailNodes, 'redaiStep').length === detailData.steps.length)
+assert.equal(byClassIn(detailNodes, 'redaiFactCell').length, detailData.facts.length, 'one cell per key fact')
+assert.equal(byClassIn(detailNodes, 'redaiLimitItem').length, detailData.limits.length, 'limitations are not dropped')
+assert.equal(byClassIn(detailNodes, 'redaiModelRow').length, detailData.models.length)
+assert.equal(byClassIn(detailNodes, 'redaiInfoCell').length, 4, 'the record section always answers four questions')
+assert.equal(byClassIn(detailNodes, 'redaiDocFoot').length, 1, 'the page says when its facts were compiled')
+
+// ── v0.9.2: a site with no editorial record still gets the same page ─────────
+// The skeleton is what makes ⓘ meaningful on all 88 cards, so it is checked from
+// the outside: a fake URL, an empty detail object, an empty group — the three
+// fixed sections must still be there and must still only print real fields.
+const zhDict = i18n.locales.zh
+const sectionIds = (nodes) => byClassIn(nodes, 'redaiDocSection')
+  .map((node) => String(node.props.id).replace('redai-sec-', ''))
+const blankLink = { title: '示例站点', url: 'http://example.test/', desc: '清单里的一句真实描述' }
+
+const skeleton = renderSite({ link: blankLink, detail: {}, groupTitle: '测试分组', siblings: [] })
+assert.deepEqual(sectionIds(skeleton), ['intro', 'info', 'siblings'],
+  'no intro, no facts, no group: the three fixed sections are still the page')
+assert.equal(byClassIn(skeleton, 'redaiDocP')[0].props.children, blankLink.desc,
+  'the list description is the stand-in intro — real copy, not invented copy')
+assert.equal(byClassIn(skeleton, 'redaiDetailTagline').length, 0,
+  'the header does not repeat the sentence the intro already carries')
+assert.deepEqual(
+  byClassIn(skeleton, 'redaiInfoValue').map((node) => node.props.children),
+  ['example.test', '测试分组', '—', zhDict['detail.starredNo']],
+  'the record section reads the domain, the group, the pills and the star',
+)
+assert.equal(byClassIn(skeleton, 'redaiRailNav').length, 1,
+  'the group block is present even when the group is empty')
+assert.equal(byClassIn(skeleton, 'redaiSiblingEmpty').length, 2,
+  'both placements say the group is empty instead of rendering nothing')
+assert.equal(byClassIn(skeleton, 'redaiDocFoot').length, 0,
+  'a page with no editorial record claims no compile date')
+assert.equal(byClassIn(skeleton, 'redaiDocToc').length, 0,
+  'two entries are not a contents list')
+
+const bare = renderSite({
+  link: { title: '无描述站点', url: 'https://bare.test/', desc: '' },
+  detail: {},
+  groupTitle: '',
+  siblings: [],
+})
+assert.equal(byClassIn(bare, 'redaiDocP')[0].props.children, zhDict['detail.introFallback'],
+  'with no description the page says there is no write-up yet')
+assert.equal(byClassIn(bare, 'redaiInfoValue')[1].props.children, '—',
+  'an unknown group is a dash, not a guess')
+
+// ── the contents block earns its width at four entries, not three ────────────
+const threeEntries = renderSite({
+  link: blankLink,
+  detail: { facts: [{ label: '定价', value: '免费' }] },
+  groupTitle: '测试分组',
+  siblings: [],
+})
+assert.deepEqual(sectionIds(threeEntries), ['intro', 'info', 'facts', 'siblings'])
+assert.equal(byClassIn(threeEntries, 'redaiDocToc').length, 0, 'three entries restate the page, so no contents list')
+const fourEntries = renderSite({
+  link: blankLink,
+  detail: { facts: [{ label: '定价', value: '免费' }], highlights: ['一句真实的技术说明'] },
+  groupTitle: '测试分组',
+  siblings: [],
+})
+assert.equal(byClassIn(fourEntries, 'redaiDocToc').length, 1, 'four entries do earn one')
+assert.equal(byClassIn(fourEntries, 'redaiTocLink').length, 4)
+
+// ── the group list exists at both widths, and never links to itself ──────────
+const wideGroup = data.groups.find((group) => group.links.length > 6)
+const wideCurrent = wideGroup.links[0]
+const wideNodes = renderSite({
+  link: wideCurrent,
+  detail: {},
+  groupTitle: wideGroup.title,
+  siblings: wideGroup.links,
+})
+const railList = byClassIn(wideNodes, 'redaiSiblingList')
+const bodyList = byClassIn(wideNodes, 'redaiSiblingGrid')
+assert.equal(railList.length, 1, 'the rail carries the group list for the wide layout')
+assert.equal(bodyList.length, 1, 'the body carries the same list for the narrow layout')
+const siblingHrefs = (list) => list.props.children.map((li) => li.props.children.props.href)
+assert.deepEqual(siblingHrefs(railList[0]), wideGroup.links.slice(1, 7).map((link) => link.url),
+  'six rows at most, in list order, current site never listed')
+assert.deepEqual(siblingHrefs(bodyList[0]), siblingHrefs(railList[0]),
+  'both placements list the same sites in the same order')
+assert.equal(byClassIn(wideNodes, 'redaiDocSection').slice(-1)[0].props.id, 'redai-sec-siblings',
+  'the group is the last section of the body')
+assert.equal(byClassIn(wideNodes, 'redaiRailHere')[0].props['aria-current'], 'page',
+  'the rail marks where you are with aria-current')
+assert.equal(byClassIn(wideNodes, 'redaiRailNav')[0].type, 'nav', 'the rail block is a real nav')
+assert.equal(byClassIn(wideNodes, 'redaiRailNav')[0].props['aria-label'], zhDict['detail.siblings'])
+assert.equal(byClassIn(detailNodes, 'redaiDocToc')[0].type, 'nav', 'so is the contents block')
+assert.equal(byClassIn(detailNodes, 'redaiDocToc')[0].props['aria-label'], zhDict['detail.toc'])
+
+// ── the body only drops its group section when the rail pairs it with a TOC ──
+// With a contents list the rail is the reference column and the body would be a
+// repeat; without one the rail is just a shortcut, and the section is the page's
+// third and last piece of substance. One boolean decides both, never two rules.
+assert.equal(byClassIn(detailNodes, 'redaiDocWideHidden').length, 1,
+  'an editorial page hides the body copy — its rail carries the contents list')
+assert.equal(byClassIn(detailNodes, 'redaiDocToc').length, 1)
+assert.equal(byClassIn(skeleton, 'redaiDocWideHidden').length, 0,
+  'a page with no contents list keeps its group section in the body at any width')
+assert.equal(byClassIn(threeEntries, 'redaiDocWideHidden').length, 0,
+  'three entries: no rail contents list, so the body keeps the section')
+assert.equal(byClassIn(fourEntries, 'redaiDocWideHidden').length, 1,
+  'four entries: the rail takes over, so the body drops it')
+assert.equal(byClassIn(skeleton, 'redaiDocSection').length, 3,
+  'the skeleton page is three sections, not two')
+
+// The body cards are the fuller shape: the list's own description under the name.
+const cardOf = (list) => list.props.children.map((li) => li.props.children)
+const descsIn = (cards) => cards.reduce((count, card) => count
+  + card.props.children.filter((child) => child && child.props.className === 'redaiSiblingDesc').length, 0)
+const bodyCards = cardOf(bodyList[0])
+const railCards = cardOf(railList[0])
+assert.equal(bodyCards.length, 6)
+assert.equal(railCards.length, 6)
+assert.ok(descsIn(bodyCards) > 0, 'the body cards carry the description the list ships')
+assert.equal(descsIn(railCards), 0, 'the 164px rail rows stay two lines tall — name and host only')
+assert.equal(byClassIn(wideNodes, 'redaiSiblingDesc').length, descsIn(bodyCards),
+  'descriptions exist only in the body grid')
+assert.equal(byClassIn(wideNodes, 'redaiSiblingDesc')[0].props.children, wideGroup.links[1].desc,
+  'the description is the list text, not a rewritten one')
+
+// CSS, not JS, decides which of the two copies a width shows: the rail appears
+// with the wide layout, and a marked body block is what that layout hides.
+assert.ok(clientSource.indexOf('.redaiDocRail{display:none}') > -1,
+  'the rail is a wide-panel affordance and starts hidden')
+assert.match(clientSource, /@container \(min-width:720px\)\{[\s\S]*?\.redaiDocRail\{display:block/,
+  'the 720px container query is what brings the rail in')
+assert.match(clientSource, /@container \(min-width:720px\)\{[\s\S]*?\.redaiDocWideHidden\{display:none\}/,
+  'and hides only the body block the rail repeats')
+assert.match(clientSource, /@container \(max-width:520px\)\{[\s\S]*?\.redaiSiblingGrid\{grid-template-columns:minmax\(0,1fr\)\}/,
+  'the card grid folds to one column when two would be too narrow')
+assert.match(clientSource, /@container \(max-width:520px\)\{[\s\S]*?\.redaiDetailTop\{max-width:none\}/,
+  'the narrow layout releases the header cap instead of clipping the star')
+
+// ── a sibling click opens the page it has, else the site ────────────────────
+const routeVisits = []
+const routeDetails = []
+const routeCurrent = detailGroup.links.find((link) => link.url !== detailUrl)
+const routedNodes = renderSite({
+  link: routeCurrent,
+  detail: {},
+  groupTitle: detailGroup.title,
+  siblings: detailGroup.links,
+  onVisit: (url) => routeVisits.push(url),
+  onDetail: (link) => routeDetails.push(link.url),
+})
+const routeLinks = byClassIn(routedNodes, 'redaiSibling')
+const writtenSibling = routeLinks.find((node) => node.props.href === detailUrl)
+assert.ok(writtenSibling, 'the site that has a page of its own is listed as a sibling')
+let siblingPrevented = false
+writtenSibling.props.onClick({ preventDefault: () => { siblingPrevented = true } })
+assert.ok(siblingPrevented, 'a sibling click never falls through to the browser')
+assert.deepEqual(routeDetails, [detailUrl], 'a sibling with a page opens that page')
+const plainSibling = routeLinks.find((node) => node.props.href !== detailUrl)
+plainSibling.props.onClick({ preventDefault: () => {} })
+assert.deepEqual(routeVisits, [plainSibling.props.href], 'a sibling without a page opens the site directly')
+assert.equal(routeDetails.length, 1, 'opening a site never also opens a page')
 
 // ── plugin ranking: v2 data contract ───────────────────────────────────────
 // v1 was twelve hand-written cards with a curated `why` / `highlights` /
@@ -914,9 +1076,10 @@ assert.deepEqual(pkg.dsh.disclosure.network, [])
   assert.ok(cardPrevented, 'the card still swallows the anchor default for a plain click')
   assert.equal(detailVisits[0], withDetail.url, 'a card with editorial content opens the site, not the detail page')
 
-  // 2. ⓘ exists only on cards that have a detail page, and never opens the site
-  assert.equal(byClass(base, 'redaiNavInfo').length, Object.keys(details.sites).length,
-    'one ⓘ per site that ships editorial content')
+  // 2. every card carries ⓘ now — the page behind it is a skeleton built from
+  //    list data, so it does not depend on editorial content existing
+  assert.equal(byClass(base, 'redaiNavInfo').length, expectedLinks,
+    'one ⓘ per card, editorial content or not')
   const cardOnly = flatten(Card({ link: withDetail, t: injected.t, tags: [], starred: false, active: false, onActivate: () => {}, onStar: () => {} }))
   assert.equal(byClass(cardOnly, 'redaiNavInfo').length, 0, 'no ⓘ without an onDetail handler')
   const detailCalls = []
