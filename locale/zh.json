@@ -40,7 +40,7 @@
   "action.unstar": "取消收藏",
   "banner.kicker": "RedAI 插件",
   "banner.title": "网址导航 · 开发者工作台入口",
-  "banner.desc": "{n} 个常用站点分 {g} 组，收藏、搜索、键盘直达。默认不出网，需要联网的能力会先申报。",
+  "banner.desc": "{n} 个常用站点分 {g} 组，按 DSH 用户真正会干的事挑的。收藏、搜索、键盘直达。",
   "banner.cta": "添加我的第一个网址",
   "banner.off": "关闭这个介绍",
   "detail.back": "返回列表",

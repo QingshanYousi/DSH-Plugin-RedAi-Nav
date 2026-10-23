@@ -4,7 +4,9 @@
 
 ![面板截图](docs/screenshot.png)
 
-**零宿主端代码 · 零第三方依赖 · 本地优先 · 出网可声明 · 不进模型上下文。** 全部可验证，见[权限声明](#权限声明)。
+**88 个开发者常用站点，分 8 组，按 DSH 用户真正会干的事挑的——不是网址大全。** 搜索、`↑↓`/`Enter` 键盘直达、星标收藏、12 条插件榜，都在同一个面板里。
+
+零宿主端代码、零第三方依赖，权限面可逐条验证，见[权限声明](#权限声明)。
 
 ## 安装
 
@@ -61,7 +63,7 @@ dsh 的宿主端插件与主进程同权限（可读凭据、全部会话、任�
 | **零宿主端代码** | `lib/index.js` 只有一个空 `apply() {}` | 全文 15 行，读一遍即可 |
 | **源码即产物** | 源码位于 `src/` 四个模块，`npm run build` 拼装成 `lib/client.js`；产物不压缩、无第三方依赖、无混淆，浏览器执行的就是仓库里可读的代码 | 无 dependencies / devDependencies，`files` 只发产物与运行期数据，`src/` 与 `scripts/` 不进包 |
 | **构建方式** | 零依赖拼装脚本（`scripts/build.mjs`，约 100 行读文件 + 缩进 + 拼接），**不是** bundler | 没有 `esbuild`/`rollup`/`webpack` 之类的痕迹；脚本改动 `git diff` 一眼看得完 |
-| **联网策略** | 当前 0 条出网请求。需要联网的能力（榜单在线刷新、详情抓取等）**必须先把域名写进 `disclosure.network` 才能进代码**，CI 会拦下未申报的 `fetch`；不请求第三方 favicon、不探测可用性、不抓标题 | `disclosure.network` 与 CI 的 network 门禁 |
+| **联网策略** | 当前版本不发任何出网请求；将来引入联网能力时，域名与用途会先写进 `disclosure.network`，CI 拦未申报的请求 | `disclosure.network` 与 CI 门禁 |
 | **不进模型** | 不注册工具、不拼提示词、不做 AI 分类 | 无 `ctx.tools` 注册 |
 | **数据不出本机** | 收藏与最近打开只写 `localStorage`，键 `redai-nav:store:v1` | 「⋯ → 清空本地数据」可一键清除 |
 
@@ -73,9 +75,7 @@ dsh 的宿主端插件与主进程同权限（可读凭据、全部会话、任�
 - **按 origin 隔离**：数据跟着客户端窗口走。换一台机器、换一个客户端、或换浏览器配置，收藏不跟着走——要搬运用「导出 JSON」。这是设计选择：不联网就不会有同步。
 - **卸载不清数据**：卸载插件只移除 loader 行，浏览器里的 key 还在；重装后收藏会回来。要彻底清除，先点「清空本地数据」再卸载。
 
-`package.json` 的 `dsh.disclosure` 按社区 DISCLOSURE v0.2 契约声明：`cloud: false`、`network: []`、`offlineMode: true`、`apiKeys: []`、`retention: "none"`、`permissions` 含 `storage:localStorage`、法域 `PIPL`。
-
-这是**当前状态，不是永久承诺**——联网能力是产品的一部分，只是每加一个出网域名，`network` 数组与本文档都要同步更新。门禁只在「代码里出现 `fetch` 而声明为空」时报红，所以漏写会立刻暴露，而不是靠自觉。
+`package.json` 的 `dsh.disclosure` 按社区 DISCLOSURE v0.2 契约声明：`cloud: false`、`network: []`、`offlineMode: true`、`apiKeys: []`、`retention: "none"`、`permissions` 含 `storage:localStorage`、法域 `PIPL`。`network` 记录的是**当前**状态；引入联网能力时会随版本同步更新。
 
 ## 兼容性
 
