@@ -426,6 +426,12 @@
           "desc": "轻量 API 调试，免登录可用"
         },
         {
+          "title": "agent-qa",
+          "url": "https://vostride.com",
+          "desc": "自然语言测试，memidex 持久记忆与自我改进",
+          "addedAt": "2026-11-01"
+        },
+        {
           "title": "draw.io",
           "url": "https://app.diagrams.net/",
           "desc": "架构图与流程图"
